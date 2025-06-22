@@ -1,17 +1,17 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: nextcloud-set-cookie-same-site-job # Nombre descriptivo para este Job
+  name: nextcloud-set-cookie-same-site-job
 spec:
   template:
     spec:
       restartPolicy: OnFailure
       securityContext:
-        fsGroup: 33 # Reemplaza con el GID de www-data que encontraste en tu imagen de Nextcloud (comúnmente 33 o 82 en Alpine/Debian, verifica tu Dockerfile o `id -g www-data` dentro del contenedor)
-        runAsUser: 33 # Opcional, pero asegura que el proceso se ejecute como www-data
+        fsGroup: 33 
+        runAsUser: 33 
       containers:
       - name: config-updater
-        image: nextcloud:31.0.6-apache # ¡IMPORTANTE! Usa la misma imagen que tu Nextcloud principal para asegurar compatibilidad de rutas y permisos.
+        image: nextcloud:31.0.6-apache
         command: ["sh", "-c"]
         args:
           - |
@@ -52,10 +52,10 @@ spec:
             echo "Para aplicar los cambios, deberías reiniciar los pods de tu Nextcloud Deployment principal."
             echo "Ejemplo: kubectl rollout restart deployment/tu-nextcloud-deployment -n tu-namespace"
         volumeMounts:
-          - name: nextcloud-config # Este PVC debe contener /var/www/html/config
+          - name: nextcloud-config 
             mountPath: /var/www/html/config
       volumes:
 
         - name: nextcloud-config
           persistentVolumeClaim:
-            claimName: nextcloud-config # ¡Asegúrate de que este es el nombre correcto de tu PVC para la configuración!
+            claimName: nextcloud-config 
