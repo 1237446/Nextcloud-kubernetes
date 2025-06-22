@@ -7,11 +7,11 @@ spec:
     spec:
       restartPolicy: OnFailure
       securityContext:
-        fsGroup: 33 # Reemplaza con el GID de www-data que encontraste (comúnmente 33)
-        runAsUser: 33 # Opcional, pero asegura que el proceso se ejecute como www-data
+        fsGroup: 33 
+        runAsUser: 33 
       containers:
       - name: config-updater
-        image: nextcloud:31.0.6-apache # Asegúrate de usar la misma imagen que tu Nextcloud
+        image: nextcloud:31.0.6-apache 
         command: ["sh", "-c"]
         args:
           - |
@@ -53,11 +53,11 @@ spec:
             # kubectl rollout restart deployment/nextcloud-deployment -n <tu-namespace>
         envFrom: # <-- AÑADIDO y con indentación correcta
           - secretRef:
-              name: password-nextcloud # Asegúrate de que este Secret contiene las credenciales necesarias
+              name: password-nextcloud 
         volumeMounts:
           - name: nextcloud-config
             mountPath: /var/www/html/config
       volumes:
         - name: nextcloud-config
           persistentVolumeClaim:
-            claimName: nextcloud-config # Asegúrate de que este PVC existe y está configurado correctamente
+            claimName: nextcloud-config
