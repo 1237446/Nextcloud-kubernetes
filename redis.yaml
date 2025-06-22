@@ -1,0 +1,107 @@
+#---------------------------------------------------------------------
+# PersistentVolumeClaim para Datos de Redis
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+  labels:
+    app: redis 
+spec:
+  #storageClassName: nfs-client # Clase de almacenamiento NFS para persistencia
+  accessModes:
+    - ReadWriteOnce 
+  resources:
+    requests:
+      storage: 10Gi 
+
+---
+#---------------------------------------------------------------------
+# Modo de publicacion de Redis
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: Service 
+metadata:
+  name: redis 
+  labels:
+    app: redis 
+spec:
+  selector:
+    app: redis 
+  ports:
+    - protocol: TCP 
+      port: 6379 
+      targetPort: 6379 
+  type: ClusterIP
+
+---
+#---------------------------------------------------------------------
+# Redis (Caché)
+#---------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis 
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis 
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis 
+          image: redis:8.0.2-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1000  
+            runAsGroup: 1000  
+            allowPrivilegeEscalation: false
+          ports:
+            - containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD 
+              valueFrom:
+                secretKeyRef:
+                  name: password-nextcloud 
+                  key: redis_password 
+          args: ["--save", "60", "1", "--loglevel", "warning", "--requirepass", "$(REDIS_PASSWORD)"]
+          #-----------------------------------------------------------
+          # limites de recursos
+          #-----------------------------------------------------------
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          #-----------------------------------------------------------
+          # Verifica si el contenedor está vivo y funcionando
+          #-----------------------------------------------------------
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "-a", "$(REDIS_PASSWORD)", "ping"] 
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          #-----------------------------------------------------------
+          # Verifica si el contenedor está listo para servir tráfico.
+          #-----------------------------------------------------------
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "-a", "$(REDIS_PASSWORD)", "ping"]  
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: redis-data 
+              mountPath: /data 
+      volumes:
+         - name: redis-data
+           persistentVolumeClaim:
+             claimName: redis-data 
