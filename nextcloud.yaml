@@ -129,11 +129,66 @@ spec:
           command: ['sh', '-c', 'until nc -z redis 6379; do echo waiting for redis; sleep 2; done;']
       containers:
         - name: nextcloud
-          image: nextcloud:31.0.6-apache # Puedes usar una versión más reciente
+          image: nextcloud:31.0.6-apache
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 80
-              name: http
+            - containerPort: 80 
+          env:
+            - name: NEXTCLOUD_TRUSTED_DOMAINS
+              value: "apu.uni.edu.pe apu.pitvirtual.uni.edu.pe 127.0.0.1" 
+            - name: NO_PROXY
+              value: "localhost,127.0.0.1,nextcloud,10.0.0.0/8,192.168.0.0/16,.svc,.cluster.local"  
+            - name: NEXTCLOUD_OVERWRITEPROTOCOL
+              value: "https"
+            - name: NEXTCLOUD_OVERWRITEHOST
+              value: "apu.uni.edu.pe"
+            - name: NEXTCLOUD_OVERWRITECLIURL
+              value: "https://apu.uni.edu.pe"
+            - name: PHP_OPCACHE_MEMORY_LIMIT 
+              value: "2480M"
+            - name: PHP_MEMORY_LIMIT 
+              value: "1024M"
+            - name: PHP_UPLOAD_LIMIT
+              value: "10G"
+            - name: PHP_MAX_EXECUTION_TIME
+              value: "3600"
+            - name: PHP_MAX_INPUT_TIME
+              value: "3600"
+            #---------------------------------------------------------
+            # Conexion a mariadb
+            #---------------------------------------------------------
+            - name: MYSQL_HOST
+              value: "mariadb"
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: password-nextcloud 
+                  key: mariadb_database 
+            - name: MYSQL_USER 
+              valueFrom:
+                secretKeyRef:
+                  name: password-nextcloud 
+                  key: mariadb_user 
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: password-nextcloud
+                  key: mariadb_password
+            #---------------------------------------------------------
+            # Conexion a redis
+            #---------------------------------------------------------
+            - name: REDIS_HOST
+              value: "redis" 
+            - name: REDIS_PORT
+              value: "6379" 
+            - name: REDIS_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: password-nextcloud
+                  key: redis_password
+          #-----------------------------------------------------------
+          # limites de recursos
+          #-----------------------------------------------------------
           resources:
             requests:
               memory: "512Mi"
@@ -141,59 +196,6 @@ spec:
             limits:
               memory: "2Gi"
               cpu: "1"
-          env:
-            - name: NEXTCLOUD_TRUSTED_DOMAINS
-              value: "apu.uni.edu.pe apu.pitvirtual.uni.edu.pe 127.0.0.1" # Dominios de confianza, puedes añadir más si es necesario
-            - name: NO_PROXY
-              value: "localhost,127.0.0.1,nextcloud,10.0.0.0/8,192.168.0.0/16,.svc,.cluster.local" # Dominios/IPs a excluir del proxy Incluye los rangos de IP de tu clúster y servicios internos              
-            - name: NEXTCLOUD_OVERWRITEPROTOCOL
-              value: "https" # Protocolo a usar para las URLs generadas por Nextcloud
-            - name: NEXTCLOUD_OVERWRITEHOST
-              value: "apu.uni.edu.pe" # O tu dominio principal
-            - name: NEXTCLOUD_OVERWRITECLIURL
-              value: "https://apu.uni.edu.pe"
-            - name: PHP_OPCACHE_MEMORY_LIMIT 
-              value: "2480M" # Limite de memoria para OPcache
-            - name: PHP_MEMORY_LIMIT 
-              value: "1024M" # Limite de memoria para PHP 
-            - name: PHP_UPLOAD_LIMIT
-              value: "10G" # Limite de subida de archivos
-            - name: PHP_MAX_EXECUTION_TIME
-              value: "3600" # 1 hora
-            - name: PHP_MAX_INPUT_TIME
-              value: "3600" # 1 hora
-            #---------------------------------------------------------
-            # Conexion a la base de datos
-            #---------------------------------------------------------
-            - name: MYSQL_HOST
-              value: "mariadb"
-            - name: MYSQL_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: password-nextcloud
-                  key: mariadb_database
-            - name: MYSQL_USER
-              valueFrom:
-                secretKeyRef:
-                  name: password-nextcloud
-                  key: mariadb_user
-            - name: MYSQL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: password-nextcloud
-                  key: mariadb_password
-            #---------------------------------------------------------
-            # Conexion a la Caché
-            #---------------------------------------------------------
-            - name: REDIS_HOST
-              value: "redis"
-            - name: REDIS_PORT
-              value: "6379"
-            - name: REDIS_HOST_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: password-nextcloud
-                  key: redis_password
           volumeMounts:
             - name: nextcloud
               mountPath: /var/www/html
