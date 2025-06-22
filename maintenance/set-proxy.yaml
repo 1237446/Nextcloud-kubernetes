@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: nextcloud-multi-proxy-config
-  namespace: default # <--- IMPORTANT: Replace with your Nextcloud's actual namespace
+  namespace: default
 spec:
   template:
     spec:
