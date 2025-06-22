@@ -1,0 +1,93 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nextcloud-db-repair-job
+  labels:
+    app: nextcloud
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure # Mantiene el pod en caso de fallo
+      containers:
+      - name: db-repairer
+        image: nextcloud:31.0.6-apache # Asegúrate de usar la misma imagen que tu Nextcloud
+        command: ["sh", "-c"] # Usa sh para ejecutar múltiples comandos
+        args:
+          - |
+            # --- COPIA LOS COMANDOS OCC DE LA BASE DE DATOS AQUÍ ---
+            CONFIG_FILE="/var/www/html/config/config.php"
+            NEXTCLOUD_PATH="/var/www/html"
+            OCC_COMMAND="php ${NEXTCLOUD_PATH}/occ"
+
+            echo "Waiting for Nextcloud's config.php to be available..."
+            ATTEMPTS=0
+            MAX_ATTEMPTS=30
+            while [ ! -f "$CONFIG_FILE" ] && [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
+                echo "config.php not found yet, waiting..."
+                sleep 5
+                ATTEMPTS=$((ATTEMPTS+1))
+            done
+
+            if [ ! -f "$CONFIG_FILE" ]; then
+                echo "Error: config.php was not found after multiple attempts. Exiting."
+                exit 1
+            fi
+
+            # --- INICIA MODO MANTENIMIENTO ---
+            echo "Enabling Nextcloud maintenance mode..."
+            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} maintenance:mode --on"
+
+            echo "Setting maintenance window start..."
+            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} config:system:set maintenance_window_start --type=integer --value=1"
+
+            echo "Running maintenance:repair --include-expensive..."
+            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} maintenance:repair --include-expensive"
+
+            echo "Running db:add-missing-columns..."
+            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} db:add-missing-columns"
+
+            echo "Running db:add-missing-indices..."
+            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} db:add-missing-indices"
+
+            echo "Running db:add-missing-primary-keys..."
+            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} db:add-missing-primary-keys"
+
+            # Limpia la caché de Nextcloud
+            echo "Clearing Nextcloud cache..."
+            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} memcache:flush"
+
+            # --- FIN COMANDOS OCC DE LA BASE DE DATOS ---
+
+            # --- DESHABILITA MODO MANTENIMIENTO ---
+            echo "Disabling Nextcloud maintenance mode..."
+            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} memcache:redis:command FLUSHALL"
+
+            # --- FIN MODO MANTENIMIENTO ---
+            echo "Database repair commands finished."
+            echo "Restarting Nextcloud pod to apply changes (optional, but good practice)."
+            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} maintenance:mode --off"
+        envFrom:
+          - secretRef:
+              name: password-nextcloud # Asegúrate de que este Secret contiene las credenciales necesarias
+        volumeMounts:
+          - name: nextcloud
+            mountPath: /var/www/html
+          - name: nextcloud-data
+            mountPath: /var/www/html/data
+          - name: nextcloud-config
+            mountPath: /var/www/html/config
+          - name: nextcloud-apps
+            mountPath: /var/www/html/custom_apps
+      volumes:
+        - name: nextcloud
+          persistentVolumeClaim:
+            claimName: nextcloud
+        - name: nextcloud-data
+          persistentVolumeClaim:
+            claimName: nextcloud-data
+        - name: nextcloud-config
+          persistentVolumeClaim:
+            claimName: nextcloud-config
+        - name: nextcloud-apps
+          persistentVolumeClaim:
+            claimName: nextcloud-apps

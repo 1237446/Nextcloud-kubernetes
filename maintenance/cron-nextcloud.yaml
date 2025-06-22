@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nextcloud-cron
+  labels:
+    app: nextcloud
+spec:
+  schedule: "*/5 * * * *" # Ejecutar cada 5 minutos
+  successfulJobsHistoryLimit: 1 # Mantener solo 1 Job exitoso
+  failedJobsHistoryLimit: 1     # Mantener solo 1 Job fallido
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            fsGroup: 33 # GID de www-data (a menudo el mismo que el UID)
+            runAsNonRoot: true # Asegura que el contenedor no se ejecute como root 
+            runAsUser: 33 # UID de www-data
+            runAsGroup: 33 # GID de www-data (a menudo el mismo que el UID)
+          containers:
+          - name: nextcloud-cron
+            image: nextcloud:31.0.6-apache # O la versión de tu imagen de Nextcloud
+            command: ["php", "-f", "/var/www/html/cron.php"] # Comando para ejecutar el cron de Nextcloud
+            volumeMounts:
+            - name: nextcloud
+              mountPath: /var/www/html # Ruta donde se encuentra Nextcloud
+            - name: nextcloud-data
+              mountPath: /var/www/html/data # Si tienes un volumen de datos personalizado
+            - name: nextcloud-config
+              mountPath: /var/www/html/config # Si tienes un archivo config.php personalizado
+            - name: nextcloud-apps
+              mountPath: /var/www/html/custom_apps # Si tienes aplicaciones personalizadas
+            envFrom:
+            - secretRef:
+                name: password-nextcloud # Si usas un Secret para las variables de entorno de Nextcloud
+          restartPolicy: OnFailure
+          volumes:
+            - name: nextcloud
+              persistentVolumeClaim:
+                claimName: nextcloud
+            - name: nextcloud-data
+              persistentVolumeClaim:
+                claimName: nextcloud-data 
+            - name: nextcloud-config
+              persistentVolumeClaim:
+                claimName: nextcloud-config
+            - name: nextcloud-apps
+              persistentVolumeClaim:
+                claimName: nextcloud-apps

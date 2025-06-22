@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nextcloud-set-cookie-same-site-job # Nombre descriptivo para este Job
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 33 # Reemplaza con el GID de www-data que encontraste en tu imagen de Nextcloud (comúnmente 33 o 82 en Alpine/Debian, verifica tu Dockerfile o `id -g www-data` dentro del contenedor)
+        runAsUser: 33 # Opcional, pero asegura que el proceso se ejecute como www-data
+      containers:
+      - name: config-updater
+        image: nextcloud:31.0.6-apache # ¡IMPORTANTE! Usa la misma imagen que tu Nextcloud principal para asegurar compatibilidad de rutas y permisos.
+        command: ["sh", "-c"]
+        args:
+          - |
+            CONFIG_FILE="/var/www/html/config/config.php"
+            COOKIE_SAME_SITE_VALUE="Lax" # <--- Puedes cambiar esto a "Strict" si lo necesitas
+
+            echo "Esperando que el archivo config.php de Nextcloud esté disponible..."
+            # Espera a que config.php exista, esto es crucial si Nextcloud no ha terminado de inicializarse
+            ATTEMPTS=0
+            MAX_ATTEMPTS=60 # Aumentado el número de intentos para mayor robustez
+            while [ ! -f "$CONFIG_FILE" ] && [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
+                echo "config.php no encontrado aún, esperando..."
+                sleep 5
+                ATTEMPTS=$((ATTEMPTS+1))
+            done
+
+            if [ ! -f "$CONFIG_FILE" ]; then
+                echo "Error: config.php no fue encontrado después de múltiples intentos. Saliendo."
+                exit 1
+            fi
+
+            echo "Verificando y configurando 'cookie_same_site' a '$COOKIE_SAME_SITE_VALUE'..."
+
+            # Busca la línea 'cookie_same_site'
+            if grep -q "'cookie_same_site'" "$CONFIG_FILE"; then
+                # Si la línea existe, la actualiza
+                echo "Actualizando entrada existente para 'cookie_same_site'."
+                sed -i "/'cookie_same_site'/c\ 'cookie_same_site' => '${COOKIE_SAME_SITE_VALUE}'," "$CONFIG_FILE"
+            else
+                # Si la línea no existe, la añade antes del ); final del array $CONFIG
+                echo "Añadiendo nueva entrada para 'cookie_same_site'."
+                # Buscamos la última línea que es un paréntesis de cierre ");"
+                # Y justo antes de ella, insertamos nuestra nueva configuración.
+                sed -i "/);/i \  'cookie_same_site' => '${COOKIE_SAME_SITE_VALUE}'," "$CONFIG_FILE"
+            fi
+
+            echo "Configurado 'cookie_same_site' en $CONFIG_FILE."
+            echo "Para aplicar los cambios, deberías reiniciar los pods de tu Nextcloud Deployment principal."
+            echo "Ejemplo: kubectl rollout restart deployment/tu-nextcloud-deployment -n tu-namespace"
+        volumeMounts:
+          - name: nextcloud-config # Este PVC debe contener /var/www/html/config
+            mountPath: /var/www/html/config
+      volumes:
+
+        - name: nextcloud-config
+          persistentVolumeClaim:
+            claimName: nextcloud-config # ¡Asegúrate de que este es el nombre correcto de tu PVC para la configuración!

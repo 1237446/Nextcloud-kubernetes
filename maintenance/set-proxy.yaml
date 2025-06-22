@@ -1,0 +1,86 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nextcloud-multi-proxy-config
+  namespace: default # <--- IMPORTANT: Replace with your Nextcloud's actual namespace
+spec:
+  template:
+    spec:
+      containers:
+      - name: config-updater
+        image: nextcloud:31.0.6-apache
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            CONFIG_FILE="/var/www/html/config/config.php"
+            PROXY_IPS_ARRAY=("172.16.8.88" "172.16.8.23" "172.16.8.27" "192.168.52.145")
+            PROXY_IPS_PHP_STRING=$(printf "'%s'," "${PROXY_IPS_ARRAY[@]}")
+            PROXY_IPS_PHP_STRING=${PROXY_IPS_PHP_STRING%,}
+            PUBLIC_DOMAIN="apu.uni.edu.pe"
+            WEBROOT=""
+
+            echo "Añadiendo configuración de proxy a Nextcloud..."
+
+            # La clave es añadir '    ' (4 espacios) al inicio de cada línea insertada
+            # 1. Asegurar la línea 'trusted_proxies'
+            sed -i "/'trusted_proxies'/d" $CONFIG_FILE
+            if grep -q "'dbpassword'" "$CONFIG_FILE"; then
+                sed -i "/'dbpassword'/a \  'trusted_proxies'   => [${PROXY_IPS_PHP_STRING}]," $CONFIG_FILE
+            else
+                sed -i "/^ *\$CONFIG = array (/a \  'trusted_proxies'   => [${PROXY_IPS_PHP_STRING}]," $CONFIG_FILE
+            fi
+
+            # 2. Añadir 'overwritehost'
+            sed -i "/'overwritehost'/d" $CONFIG_FILE
+            sed -i "/'trusted_proxies'/a \  'overwritehost'     => '${PUBLIC_DOMAIN}'," $CONFIG_FILE
+
+            # 3. Añadir 'overwriteprotocol'
+            sed -i "/'overwriteprotocol'/d" $CONFIG_FILE
+            sed -i "/'overwritehost'/a \  'overwriteprotocol' => 'https'," $CONFIG_FILE
+
+            # 4. Añadir 'overwritewebroot' (solo si WEBROOT no es vacío)
+            sed -i "/'overwritewebroot'/d" $CONFIG_FILE
+            if [ -n "$WEBROOT" ]; then
+              sed -i "/'overwriteprotocol'/a \  'overwritewebroot'  => '${WEBROOT}'," $CONFIG_FILE
+              OVERWRITE_ANCHOR='overwritewebroot'
+            else
+              OVERWRITE_ANCHOR='overwriteprotocol'
+            fi
+
+            # 5. Añadir 'overwritecondaddr'
+            OVERWRITE_COND_REGEX=""
+            for ip in "${PROXY_IPS_ARRAY[@]}"; do
+                ESCAPED_IP=$(echo "${ip}" | sed 's/\./\\./g')
+                if [ -z "$OVERWRITE_COND_REGEX" ]; then
+                    OVERWRITE_COND_REGEX="^${ESCAPED_IP}$"
+                else
+                    OVERWRITE_COND_REGEX="${OVERWRITE_COND_REGEX}|^${ESCAPED_IP}$"
+                fi
+            done
+            sed -i "/'overwritecondaddr'/d" $CONFIG_FILE
+            sed -i "/'${OVERWRITE_ANCHOR}'/a \  'overwritecondaddr' => '${OVERWRITE_COND_REGEX}'," $CONFIG_FILE
+
+            # 6. Añadir 'overwrite.cli.url'
+            sed -i "/'overwrite.cli.url'/d" $CONFIG_FILE
+            CLI_URL="${PUBLIC_DOMAIN}"
+            if [ -n "$WEBROOT" ]; then
+              CLI_URL="${CLI_URL}${WEBROOT}"
+            fi
+            if [[ "$CLI_URL" != */ ]]; then
+                CLI_URL="${CLI_URL}/"
+            fi
+            sed -i "/'overwritecondaddr'/a \  'overwrite.cli.url' => 'https://${CLI_URL}'," $CONFIG_FILE
+
+            echo "Configuración de proxy añadida exitosamente."
+        envFrom:
+          - secretRef:
+              name: password-nextcloud
+        volumeMounts:
+          - name: nextcloud-config
+            mountPath: /var/www/html/config
+      volumes:
+        - name: nextcloud-config
+          persistentVolumeClaim:
+            claimName: nextcloud-config
+      restartPolicy: OnFailure
+  backoffLimit: 4
