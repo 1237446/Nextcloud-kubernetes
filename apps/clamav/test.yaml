@@ -8,102 +8,47 @@ data:
   # Escuchará en todas las interfaces (0.0.0.0) en el puerto TCP 3310.
   clamd.conf: |
     # /etc/clamav/clamd.conf
-    # Configuración MÍNIMA para el demonio ClamAV (clamd)
-
-    # --- Configuración de Logging ---
     LogFile /var/log/clamav/clamd.log
-    LogFileMaxSize 1M
+    LogFileMaxSize 1048576
     LogTime yes
-
-    # --- Archivos de Estado ---
     PidFile /var/run/clamav/clamd.pid
     LocalSocket /run/clamav/clamd.sock
-    # --- Configuración de Base de Datos ---
     DatabaseDirectory /var/lib/clamav
     OfficialDatabaseOnly true
-
-    # --- Configuración de Red (¡CRÍTICO para escanear de forma remota!) ---
     TCPSocket 3310
     TCPAddr 0.0.0.0
-
-    # --- Seguridad ---
     User clamav
-
-    # --- Límites de Escaneo (manteniendo los valores por defecto o sensatos) ---
     StreamMaxLength 0
     MaxScanSize 200M
     MaxFileSize 50M
     MaxRecursion 16
     MaxFiles 100000
-
-    # --- Opciones de Escaneo Específicas ---
- 
-    #Escanea correos electrónicos.  
-    ScanMail yes
-
-    #Escanea archivos comprimidos (zip, rar, tar, etc.).  
-    ScanArchive yes
- 
-    # #Tamaño máximo de archivo dentro de un archivo comprimido.  
-    # ArchiveMaxFileSize 25M`
-    # Nivel máximo de recursión al descomprimir archivos.  
-    #ArchiveMaxRecursion 10
-
-    #Escanea archivos PDF.  
-    ScanPDF yes
-
-    #Escanea archivos OLE2 (documentos de MS Office antiguos).  
-    ScanOLE2 yes
-
-    #Escanea archivos Flash (SWF).  
-    ScanSWF yes
-
-    #Escanea archivos ejecutables de Windows (PE).  
-    ScanPE yes
-
-    #Escanea archivos ejecutables de Linux (ELF).  
-    ScanELF yes
-
-    #Escanea archivos HTML.  
-    ScanHTML yes
-
-    #Escanea documentos XML.  
-    ScanXMLDOCS yes
-
-    #Escanea archivos Hangul Word Processor.  
-    ScanHWP3 yes
-
-    #Escanea mensajes de correo incompletos.  
-    ScanPartialMessages yes
-
-    #Habilita la detección de firmas de phishing.  
-    PhishingSignatures yes
-
-    #Escanea URLs en busca de phishing.  
-    PhishingScanURLs yes
-
-    #Da prioridad a los resultados heurísticos.  
-    HeuristicScanPrecedence yes
-
-    #Detecta aplicaciones potencialmente no deseadas.  
-    DetectPUA yes
-
-    #Excluye ciertas categorías de PUA.  
-    #ExcludePUA Tool,NetTool
-
-    #Incluye solo ciertas categorías de PUA.  
-    #IncludePUA Adware
-
-    #Detecta ejecutables dañados.  
-    DetectBrokenExecutables yes
-
-    #Habilita la detección algorítmica avanzada.  
+    ArchiveMaxRecursion 10
     AlgorithmicDetection yes
-
-    #Habilita el escaneo en tiempo real (si está soportado).  
-    #ScanOnAccess yes
-
-    # --- Auto-comprobación ---
+    DetectPUA yes
+    HeuristicScanPrecedence yes
+    ScanMail yes
+    ScanArchive yes
+    ScanPDF yes
+    ScanOLE2 yes
+    ScanSWF yes
+    ScanPE yes
+    ScanELF yes
+    ScanHTML yes
+    ScanXMLDOCS yes
+    ScanHWP3 yes
+    ScanPartialMessages yes
+    PhishingSignatures yes
+    PhishingScanURLs yes
+    Bytecode yes
+    BytecodeSecurity TrustSigned
+    AlertBrokenExecutables yes
+    AlertEncryptedArchive yes
+    AlertEncryptedDoc yes
+    AlertBrokenMedia yes
+    AlertEncrypted yes
+    AlertOLE2Macros yes
+    AlertPartitionIntersection yes
     SelfCheck 300
 
 ---
