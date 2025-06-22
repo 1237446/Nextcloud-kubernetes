@@ -1,0 +1,34 @@
+#-----------------------------------------------------------
+# Modo de publicacion de Nextcloud
+#-----------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: collabora-ingress
+  labels:
+    app: collabora
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-collabora" # Asegúrate de que este ClusterIssuer esté creado
+    nginx.ingress.kubernetes.io/ssl-redirect: "true" # Redirige automáticamente a HTTPS
+    nginx.ingress.kubernetes.io/proxy-buffering: "off" # Desactiva el buffering para mejorar el rendimiento con archivos grandes
+    nginx.ingress.kubernetes.io/proxy-body-size: "0" # Permite archivos de cualquier tamaño
+    nginx.ingress.kubernetes.io/use-regex: "true" # Permite el uso de expresiones regulares en las rutas
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600" # Aumenta el tiempo de espera para solicitudes largas
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600" # Aumenta el tiempo de espera para envíos largos
+spec:    
+  ingressClassName: nginx # Asegúrate de que NGINX Ingress Controller esté instalado y configurado
+  rules:
+  - host: apu.pitvirtual.uni.edu.pe # Reemplaza con tu dominio deseado
+    http:
+      paths:
+      - path: /
+        pathType: Prefix 
+        backend:
+          service:
+            name: collabora # Nombre del Service de Nextcloud
+            port:
+              number: 9980 # Puerto del Service de Nextcloud
+  tls:
+  - hosts:
+    - apu.pitvirtual.uni.edu.pe # Reemplaza con tu dominio
+    secretName: apu.pitvirtual.uni.edu.pe-tls # El Secret donde cert-manager almacenará el certificado

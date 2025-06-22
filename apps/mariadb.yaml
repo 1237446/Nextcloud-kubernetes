@@ -1,0 +1,148 @@
+#---------------------------------------------------------------------
+# PersistentVolumeClaim para Datos de MariaDB
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mariadb-data
+  labels:
+    app: mariadb
+spec:
+  #storageClassName: nfs-client
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+#---------------------------------------------------------------------
+# Modo de publicacion de MariaDB
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb
+  labels:
+    app: mariadb
+spec:
+  selector:
+    app: mariadb
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP
+
+---
+#---------------------------------------------------------------------
+# MariaDB (Base de Datos)
+#---------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb
+  labels:
+    app: mariadb
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: mariadb
+          image: mariadb:10.11
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 999 
+            runAsGroup: 999  
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: password-nextcloud
+                  key: mariadb_root_password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: password-nextcloud
+                  key: mariadb_database
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: password-nextcloud
+                  key: mariadb_user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: password-nextcloud
+                  key: mariadb_password
+          #-----------------------------------------------------------
+          # limites de recursos
+          #-----------------------------------------------------------
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          #-----------------------------------------------------------
+          # Verifica si el contenedor está vivo y funcionando
+          #-----------------------------------------------------------
+          livenessProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  MYSQL_ROOT_PASSWORD=$(echo "$MYSQL_ROOT_PASSWORD")
+                  if [[ -n "$MYSQL_ROOT_PASSWORD" ]]; then
+                    mariadb-admin ping -uroot -p"$MYSQL_ROOT_PASSWORD" -h 127.0.0.1
+                  else
+                    echo "Error: MYSQL_ROOT_PASSWORD no está configurada."
+                    exit 1
+                  fi
+            initialDelaySeconds: 300
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          #-----------------------------------------------------------
+          # Verifica si el contenedor está listo para servir tráfico.
+          #-----------------------------------------------------------
+          readinessProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  MYSQL_USER=$(echo "$MYSQL_USER")
+                  MYSQL_PASSWORD=$(echo "$MYSQL_PASSWORD")
+                  if [[ -n "$MYSQL_USER" && -n "$MYSQL_PASSWORD" ]]; then
+                    mariadb -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" -h 127.0.0.1 -e "SELECT 1;"
+                  else
+                    echo "Error: MYSQL_USER o MYSQL_PASSWORD no están configurados."
+                    exit 1
+                  fi
+            initialDelaySeconds: 45
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 5
+          volumeMounts:
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mariadb-data
+          persistentVolumeClaim:
+            claimName: mariadb-data

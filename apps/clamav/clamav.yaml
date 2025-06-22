@@ -1,0 +1,275 @@
+#---------------------------------------------------------------------
+# PersistentVolumeClaim para Datos de ClamAV
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clamav-data
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+#---------------------------------------------------------------------
+# PersistentVolumeClaim Socket de ClamAV
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clamav-socket
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+#---------------------------------------------------------------------
+# PersistentVolumeClaim logs de ClamAV
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clamav-logs
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+#---------------------------------------------------------------------
+# Modo de publicacion de ClamAV
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: clamav
+spec:
+  selector:
+    app: clamav
+  ports:
+    - protocol: TCP
+      port: 3310
+      targetPort: 3310
+      name: clamd
+  type: ClusterIP
+
+---
+# Definición del ConfigMap (DEBES CREAR ESTO ANTES DEL DEPLOYMENT)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clamav-config
+data:
+  clamd.conf: |
+    # /etc/clamav/clamd.conf
+    # Configuración MÍNIMA para el demonio ClamAV (clamd)
+
+    # --- Configuración de Logging ---
+    LogFile /var/log/clamav/clamd.log
+    LogFileMaxSize 1M
+    LogTime yes
+
+    # --- Archivos de Estado ---
+    PidFile /var/run/clamav/clamd.pid
+
+    # --- Configuración de Base de Datos ---
+    DatabaseDirectory /var/lib/clamav
+    OfficialDatabaseOnly true
+
+    # --- Configuración de Red (¡CRÍTICO para escanear de forma remota!) ---
+    TCPSocket 3310
+    TCPAddr 0.0.0.0
+
+    # --- Seguridad ---
+    User clamav
+
+    # --- Límites de Escaneo (manteniendo los valores por defecto o sensatos) ---
+    StreamMaxLength 0
+    MaxScanSize 200M
+    MaxFileSize 50M
+    MaxRecursion 16
+    MaxFiles 100000
+
+    # --- Opciones de Escaneo Específicas ---
+ 
+    #Escanea correos electrónicos.  
+    ScanMail yes
+
+    #Escanea archivos comprimidos (zip, rar, tar, etc.).  
+    ScanArchive yes
+ 
+    # #Tamaño máximo de archivo dentro de un archivo comprimido.  
+    # ArchiveMaxFileSize 25M`
+    # Nivel máximo de recursión al descomprimir archivos.  
+    #ArchiveMaxRecursion 10
+
+    #Escanea archivos PDF.  
+    ScanPDF yes
+
+    #Escanea archivos OLE2 (documentos de MS Office antiguos).  
+    ScanOLE2 yes
+
+    #Escanea archivos Flash (SWF).  
+    ScanSWF yes
+
+    #Escanea archivos ejecutables de Windows (PE).  
+    ScanPE yes
+
+    #Escanea archivos ejecutables de Linux (ELF).  
+    ScanELF yes
+
+    #Escanea archivos HTML.  
+    ScanHTML yes
+
+    #Escanea documentos XML.  
+    ScanXMLDOCS yes
+
+    #Escanea archivos Hangul Word Processor.  
+    ScanHWP3 yes
+
+    #Escanea mensajes de correo incompletos.  
+    ScanPartialMessages yes
+
+    #Habilita la detección de firmas de phishing.  
+    PhishingSignatures yes
+
+    #Escanea URLs en busca de phishing.  
+    PhishingScanURLs yes
+
+    #Da prioridad a los resultados heurísticos.  
+    HeuristicScanPrecedence yes
+
+    #Detecta aplicaciones potencialmente no deseadas.  
+    DetectPUA yes
+
+    #Excluye ciertas categorías de PUA.  
+    #ExcludePUA Tool,NetTool
+
+    #Incluye solo ciertas categorías de PUA.  
+    #IncludePUA Adware
+
+    #Detecta ejecutables dañados.  
+    DetectBrokenExecutables yes
+
+    #Habilita la detección algorítmica avanzada.  
+    AlgorithmicDetection yes
+
+    #Habilita el escaneo en tiempo real (si está soportado).  
+    #ScanOnAccess yes
+
+    # --- Auto-comprobación ---
+    SelfCheck 300
+
+---
+#---------------------------------------------------------------------
+# ClamAV (Antivirus)
+#---------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clamav
+  labels:
+    app: clamav
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clamav
+  template:
+    metadata:
+      labels:
+        app: clamav
+    spec:
+      initContainers:
+        - name: freshclam-init
+          image: clamav/clamav:latest
+          command: ["/bin/sh", "-c"]
+          args:
+          #-----------------------------------------------------------
+          # Descarga de base de datos de virus
+          #-----------------------------------------------------------
+            - >-
+              echo "Attempting to update ClamAV database...";
+              freshclam --stdout --datadir=/var/lib/clamav ||
+              (echo "Initial freshclam failed, attempting to copy pre-existing defs if any...";
+              if [ -d "/var/lib/clamav-temp" ] && [ "$(ls -A /var/lib/clamav-temp)" ]; then
+                echo "Copying existing definitions from temp volume to main volume";
+                cp -R /var/lib/clamav-temp/* /var/lib/clamav/;
+              else
+                echo "No pre-existing definitions found in temp volume or freshclam failed definitively.";
+              fi);
+                echo "Freshclam process finished."
+          volumeMounts:
+            - name: clamav-data
+              mountPath: /var/lib/clamav
+            - name: clamav-socket
+              mountPath: /var/run/clamav
+      containers:
+        - name: clamd
+          image: clamav/clamav
+          env:
+            - name: TZ
+              value: "America/Lima"
+          command: ["clamd", "--foreground"]
+          ports:
+            - containerPort: 3310
+              name: clamd-tcp
+          volumeMounts:
+            - name: clamav-data
+              mountPath: /var/lib/clamav
+            - name: clamav-logs
+              mountPath: /var/log/clamav
+            - name: clamav-socket
+              mountPath: /var/run/clamav
+            - name: clamav-config
+              mountPath: /etc/clamav/clamd.conf
+              subPath: clamd.conf
+            # - name: clamav-config
+            #   mountPath: /etc/clamav/freshclam.conf
+            #   subPath: freshclam.conf
+          resources: # <-- Añade esto
+            requests:
+              memory: "1Gi" # Un buen punto de partida para ClamAV
+              cpu: "500m"
+            limits:
+              memory: "2Gi" # Ajusta según sea necesario
+              cpu: "1"
+          #-----------------------------------------------------------
+          # Verifica si el contenedor está vivo y funcionando
+          #-----------------------------------------------------------
+          livenessProbe:
+            exec:
+              command: ["clamdscan", "--version"]
+            initialDelaySeconds: 120
+            periodSeconds: 60
+          #-----------------------------------------------------------
+          # Verifica si el contenedor está listo para servir tráfico.
+          #-----------------------------------------------------------
+          readinessProbe:
+            exec:
+              command: ["clamdscan", "--version"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: clamav-data
+          persistentVolumeClaim:
+            claimName: clamav-data
+        - name: clamav-socket
+          persistentVolumeClaim:
+            claimName: clamav-socket
+        - name: clamav-config # This is the volume definition
+          configMap:
+            name: clamav-config
+        - name: clamav-logs
+          persistentVolumeClaim:
+            claimName: clamav-logs

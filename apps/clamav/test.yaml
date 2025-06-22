@@ -1,0 +1,183 @@
+# Archivo de configuración para ClamAV
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clamav-config
+data:
+  # Configuración para el demonio clamd.
+  # Escuchará en todas las interfaces (0.0.0.0) en el puerto TCP 3310.
+  clamd.conf: |
+    # /etc/clamav/clamd.conf
+    # Configuración MÍNIMA para el demonio ClamAV (clamd)
+
+    # --- Configuración de Logging ---
+    LogFile /var/log/clamav/clamd.log
+    LogFileMaxSize 1M
+    LogTime yes
+
+    # --- Archivos de Estado ---
+    PidFile /var/run/clamav/clamd.pid
+    LocalSocket /run/clamav/clamd.sock
+    # --- Configuración de Base de Datos ---
+    DatabaseDirectory /var/lib/clamav
+    OfficialDatabaseOnly true
+
+    # --- Configuración de Red (¡CRÍTICO para escanear de forma remota!) ---
+    TCPSocket 3310
+    TCPAddr 0.0.0.0
+
+    # --- Seguridad ---
+    User clamav
+
+    # --- Límites de Escaneo (manteniendo los valores por defecto o sensatos) ---
+    StreamMaxLength 0
+    MaxScanSize 200M
+    MaxFileSize 50M
+    MaxRecursion 16
+    MaxFiles 100000
+
+    # --- Opciones de Escaneo Específicas ---
+ 
+    #Escanea correos electrónicos.  
+    ScanMail yes
+
+    #Escanea archivos comprimidos (zip, rar, tar, etc.).  
+    ScanArchive yes
+ 
+    # #Tamaño máximo de archivo dentro de un archivo comprimido.  
+    # ArchiveMaxFileSize 25M`
+    # Nivel máximo de recursión al descomprimir archivos.  
+    #ArchiveMaxRecursion 10
+
+    #Escanea archivos PDF.  
+    ScanPDF yes
+
+    #Escanea archivos OLE2 (documentos de MS Office antiguos).  
+    ScanOLE2 yes
+
+    #Escanea archivos Flash (SWF).  
+    ScanSWF yes
+
+    #Escanea archivos ejecutables de Windows (PE).  
+    ScanPE yes
+
+    #Escanea archivos ejecutables de Linux (ELF).  
+    ScanELF yes
+
+    #Escanea archivos HTML.  
+    ScanHTML yes
+
+    #Escanea documentos XML.  
+    ScanXMLDOCS yes
+
+    #Escanea archivos Hangul Word Processor.  
+    ScanHWP3 yes
+
+    #Escanea mensajes de correo incompletos.  
+    ScanPartialMessages yes
+
+    #Habilita la detección de firmas de phishing.  
+    PhishingSignatures yes
+
+    #Escanea URLs en busca de phishing.  
+    PhishingScanURLs yes
+
+    #Da prioridad a los resultados heurísticos.  
+    HeuristicScanPrecedence yes
+
+    #Detecta aplicaciones potencialmente no deseadas.  
+    DetectPUA yes
+
+    #Excluye ciertas categorías de PUA.  
+    #ExcludePUA Tool,NetTool
+
+    #Incluye solo ciertas categorías de PUA.  
+    #IncludePUA Adware
+
+    #Detecta ejecutables dañados.  
+    DetectBrokenExecutables yes
+
+    #Habilita la detección algorítmica avanzada.  
+    AlgorithmicDetection yes
+
+    #Habilita el escaneo en tiempo real (si está soportado).  
+    #ScanOnAccess yes
+
+    # --- Auto-comprobación ---
+    SelfCheck 300
+
+---
+# Despliegue de la aplicación ClamAV
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clamav
+  labels:
+    app: clamav
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clamav
+  template:
+    metadata:
+      labels:
+        app: clamav
+    spec:
+      containers:
+      - name: clamav
+        image: clamav/clamav:1.4.3
+        ports:
+        - name: clamd-tcp
+          containerPort: 3310
+          protocol: TCP
+        # Montar la configuración y el volumen para la base de datos de virus.
+        volumeMounts:
+        - name: clamav-db
+          mountPath: /var/lib/clamav
+        - name: clamav-config-volume
+          mountPath: /etc/clamav/clamd.conf
+          subPath: clamd.conf # Monta solo este archivo del ConfigMap
+        - name: clamav-logs
+          mountPath: /var/log/clamav
+        # Probes para que Kubernetes sepa si el servicio está listo y saludable.
+        # readinessProbe:
+        #   tcpSocket:
+        #     port: clamd-tcp
+        #   initialDelaySeconds: 60 # Espera a que se descargue la BBDD inicial
+        #   periodSeconds: 10
+        # livenessProbe:
+        #   tcpSocket:
+        #     port: clamd-tcp
+        #   initialDelaySeconds: 120
+        #   periodSeconds: 30
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+      volumes:
+      - name: clamav-db
+        emptyDir: {}
+      - name: clamav-config-volume
+        configMap:
+          name: clamav-config
+      - name: clamav-logs
+        emptyDir: {}
+
+---
+# Servicio para exponer ClamAV a otras pods
+apiVersion: v1
+kind: Service
+metadata:
+  name: clamav
+spec:
+  type: ClusterIP
+  selector:
+    app: clamav
+  ports:
+    - port: 3310        # El puerto en el que el servicio escuchará.
+      targetPort: 3310 # El puerto en el pod al que se redirigirá el tráfico.
+      protocol: TCP
