@@ -3,7 +3,7 @@ Integracion de nextcloud en la plataforma de kubernetes
 
 Antes de realizar la instalacion, verificar los archivos y modificar los valores a los que usara
 - :key: **secrets** Este manifiesto estan las contraseñas de las demas aplicaciones
-> [!WARNING]
+> [!IMPORTANT]
 > en el archivo publicado estan credenciales de ejemplo, se recomienta cambiarlas al momento de pase a produccion
 - :floppy_disk: **mariadb** Servira como base de datos para almacenar la informacion de configuracion y metadatos
 - :dvd: **redis** Servira como almacenamiento cache de datos de navegacion dando mayor velocidad
@@ -12,7 +12,7 @@ Antes de realizar la instalacion, verificar los archivos y modificar los valores
 - :page_with_curl: **collabora** Servira como suite de ofimatica para los documentos via web 
 ---
 ## Requisitos previos
-> [!NOTE]
+> [!TIP]
 > Si no tienes instalado Kuberntes puedes usar esta [guia](https://pabpereza.dev/docs/cursos/kubernetes/instalacion_de_kubernetes_cluster_completo_ubuntu_server_con_kubeadm)
 ### :bookmark:Ingress Controller
 Instalamos NGINX Ingress Controller. Puedes cambiar la version 
@@ -100,8 +100,8 @@ nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
 --set storageClass.onDelete=true
 ```
 
-## Instalacion
-En primera instancia instalamos los certidicados
+## Instalacion de aplicaciones
+En primera instancia instalamos los certificados
 ```
 kubectl apply -f certificados/
 ```
@@ -109,18 +109,25 @@ posteriormente instalamos los manifiestos de ingress
 ```
 kubectl apply -f ingress/
 ```
-
-
-Una vez revizado y edita los archivos procederemos a la ejecutar los manifiestos
-Podemos ejecutar todos de una sola pasada
-```
-kubectl apply -f apps/
-```
-verificamos que estan ejecutandoce correctamente
+verificamos que ingress este ejecutandoce correctamente
 ``` 
 kubectl get pods
 ```
-Esperemos a que los pods esten en estado Runnig para poder continuar
+```
+NAME                CLASS   HOSTS                       ADDRESS       PORTS     AGE
+collabora-ingress   nginx   apu.pitvirtual.uni.edu.pe   172.16.8.88   80, 443   5d6h
+nextcloud-ingress   nginx   apu.uni.edu.pe              172.16.8.88   80, 443   5d6h
+Una vez revizado y edita los archivos procederemos a la ejecutar los manifiestos
+```
+
+Ahora podemos instalar las aplicaciones mediante los mifiestos
+```
+kubectl apply -f apps/
+```
+verificamos que estan ejecutandoce correctamente y Esperemos a que los pods esten en estado Runnig para poder continuar
+``` 
+kubectl get pods
+```
 ``` 
 NAME                                               READY   STATUS              RESTARTS   AGE
 clamav-8667bfc7fc-6ds25                            0/1     ContainerCreating   0          6s
@@ -130,9 +137,63 @@ nextcloud-5cc9dc666f-n9pm2                         0/1     Init:0/2            0
 nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running             0          3m
 redis-686556cf6d-rddd5                             0/1     ContainerCreating   0          5s
 ```
-Ingresamos a nextcloud desde nuestro navegador y configuramos las credenciales de **Admnistrador**
+Ingresamos a nextcloud desde nuestro navegador con el dominio configurado y configuramos las credenciales de **Admnistrador**
+> [!IMPORTANT]
+> La contraseña usada debe ser robusta para mayor seguridad.
+
+![guia](/images/imagen-1.png)
 
 
+Instalamos las apliacaciones que deseemos
+
+![guia](/images/imagen-2.png)
+
+
+Una vez instalado, estaremos en el dashboard de Nextcloud
+
+![guia](/images/imagen-3.png)
+
+
+Ingresamos al panel de administracion, seleccionamos el icono ubicado en la parte superior derecha > Configuraciones de administracion > Vista general
+> [!NOTE]
+> Dentro podemos verificar los errores que presnta Nextcloud, los cuales seran corregidos por los manifiesto de mantenimiento
+
+![guia](/images/imagen-4.png)
+
+## Correccion de errores
+Ahora corregiremos la mayoria de errores que aparecen en Nextcloud
+> [!NOTE]
+> Puedes revisar los logs del pod en caso de algun error
+
+### Manteniento de base de datos 
+este manifiesto establece una pequeña ventana de manteniento, en el cual:
+- Corrige las tablas de mariadb
+- Añade tablas faltantes (si es el caso)
+- Establece el manteniento automatico
+- Borra la cache de redis
+
+Para ello ejecutamos el manifiesto set-db.yaml
+``` 
+kubectl apply -f maintenance/set-db.yaml
+```
+
+### Establecer la region de predeterminada para teléfonos
+este manifiesto añade la region para telefonos
+
+Para ello ejecutamos el manifiesto set-db.yaml
+``` 
+kubectl apply -f maintenance/set-phone.yaml
+```
+
+### Establecer la configuracion de Proxy
+Este manifiesto añade la configuracion necesaria para que Nextcloud funione correctamente con un proxy (ingress no es un proxy pero actua como tal)
+``` 
+kubectl apply -f maintenance/set-proxy.yaml
+```
+
+Aplicado la primara parte de los manifiestos de correccion, refrescamos la pagina y verificamos nuevamente los errores
+
+![guia](/images/imagen-5.png)
 
 
 
