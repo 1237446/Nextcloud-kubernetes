@@ -7,31 +7,17 @@ metadata:
 spec:
   template:
     spec:
-      restartPolicy: OnFailure # Mantiene el pod en caso de fallo
+      restartPolicy: OnFailure 
       containers:
       - name: db-repairer
         image: nextcloud:31.0.6-apache # Asegúrate de usar la misma imagen que tu Nextcloud
-        command: ["sh", "-c"] # Usa sh para ejecutar múltiples comandos
+        command: ["sh", "-c"] 
         args:
           - |
             # --- COPIA LOS COMANDOS OCC DE LA BASE DE DATOS AQUÍ ---
             CONFIG_FILE="/var/www/html/config/config.php"
             NEXTCLOUD_PATH="/var/www/html"
             OCC_COMMAND="php ${NEXTCLOUD_PATH}/occ"
-
-            echo "Waiting for Nextcloud's config.php to be available..."
-            ATTEMPTS=0
-            MAX_ATTEMPTS=30
-            while [ ! -f "$CONFIG_FILE" ] && [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
-                echo "config.php not found yet, waiting..."
-                sleep 5
-                ATTEMPTS=$((ATTEMPTS+1))
-            done
-
-            if [ ! -f "$CONFIG_FILE" ]; then
-                echo "Error: config.php was not found after multiple attempts. Exiting."
-                exit 1
-            fi
 
             # --- INICIA MODO MANTENIMIENTO ---
             echo "Enabling Nextcloud maintenance mode..."
@@ -54,13 +40,9 @@ spec:
 
             # Limpia la caché de Nextcloud
             echo "Clearing Nextcloud cache..."
-            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} memcache:flush"
+            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} memcache:redis:command FLUSHALL"
 
             # --- FIN COMANDOS OCC DE LA BASE DE DATOS ---
-
-            # --- DESHABILITA MODO MANTENIMIENTO ---
-            echo "Disabling Nextcloud maintenance mode..."
-            su -s /bin/bash www-data -c "cd ${NEXTCLOUD_PATH} && ${OCC_COMMAND} memcache:redis:command FLUSHALL"
 
             # --- FIN MODO MANTENIMIENTO ---
             echo "Database repair commands finished."
