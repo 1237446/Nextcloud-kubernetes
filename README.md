@@ -2,7 +2,7 @@
 Integracion de nextcloud en la plataforma de kubernetes
 
 Antes de realizar la instalacion, verificar los archivos y modificar los valores a los que usara
-- :dark_sunglasses: **secrets** Este manifiesto estan las contraseñas de las demas aplicaciones
+- :key: **secrets** Este manifiesto estan las contraseñas de las demas aplicaciones
 > [!WARNING]
 > en el archivo publicado estan credenciales de ejemplo, se recomienta cambiarlas al momento de pase a produccion
 - :floppy_disk: **mariadb** Servira como base de datos para almacenar la informacion de configuracion y metadatos
@@ -14,7 +14,7 @@ Antes de realizar la instalacion, verificar los archivos y modificar los valores
 ## Requisitos previos
 > [!NOTE]
 > Si no tienes instalado Kuberntes puedes usar esta [guia](https://pabpereza.dev/docs/cursos/kubernetes/instalacion_de_kubernetes_cluster_completo_ubuntu_server_con_kubeadm)
-### Ingress Controller
+### :bookmark:Ingress Controller
 Instalamos NGINX Ingress Controller. Puedes cambiar la version 
 ``` 
 https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.3.0/deploy/static/provider/cloud/deploy.yaml
@@ -31,7 +31,7 @@ NAME                                        READY   STATUS    RESTARTS        AG
 ingress-nginx-controller-578c564c54-ln8kq   1/1     Running   0)              2m
 ```
 
-### Cert Manager
+### :pencil:Cert Manager
 Requerido para cambiar el campo 'email' para crear una cuenta Let's Encrypt:
 Instalación de los CustomResourceDefinitions (CRDs)
 ```
@@ -55,7 +55,7 @@ cert-manager-cainjector-654b9d7994-fg5kl   1/1     Running   0          2m
 cert-manager-webhook-65786f5c8c-vghj9      1/1     Running   0          2m
 ```
 
-### MetalLB LoadBalancer
+### :computer:MetalLB LoadBalancer
 Editamos la configuración de kube-proxy en el clúster actual
 ``` 
 kubectl edit configmap -n kube-system kube-proxy
@@ -84,7 +84,7 @@ En este caso usaremos Layer2
 kubectl apply -f ipaddresspool.yaml
 ```
 
-### NFS Provisioner
+### :open_file_folder:NFS Provisioner
 En este caso usaremos helm para crear el manifiesto para ello añadimos los repositorio 
 ```
 helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner
@@ -101,6 +101,15 @@ nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
 ```
 
 ## Instalacion
+En primera instancia instalamos los certidicados
+```
+kubectl apply -f certificados/
+```
+posteriormente instalamos los manifiestos de ingress 
+```
+kubectl apply -f ingress/
+```
+
 
 Una vez revizado y edita los archivos procederemos a la ejecutar los manifiestos
 Podemos ejecutar todos de una sola pasada
@@ -111,19 +120,17 @@ verificamos que estan ejecutandoce correctamente
 ``` 
 kubectl get pods
 ```
-Esperemaos a que los pods esten en estado Runnig para poder continuar
+Esperemos a que los pods esten en estado Runnig para poder continuar
 ``` 
-NAME                                               READY   STATUS      RESTARTS      AGE
-clamav-66d94fb94b-lj287                            1/1     Running     0             5m
-collabora-84ffc497f4-jmd4d                         1/1     Running     0             5m
-mariadb-b4b4c9949-m88cf                            1/1     Running     0             5m
-nextcloud-8767f454f-9zl7x                          1/1     Running     0             5m
-nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running     0             5m
-redis-6b468c499f-4jj7t                             1/1     Running     0             5m
+NAME                                               READY   STATUS              RESTARTS   AGE
+clamav-8667bfc7fc-6ds25                            0/1     ContainerCreating   0          6s
+collabora-745b5cdc-nmr8d                           0/1     ContainerCreating   0          6s
+mariadb-c6d7854df-m7kv5                            0/1     ContainerCreating   0          5s
+nextcloud-5cc9dc666f-n9pm2                         0/1     Init:0/2            0          5s
+nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running             0          3m
+redis-686556cf6d-rddd5                             0/1     ContainerCreating   0          5s
 ```
-
-
-
+Ingresamos a nextcloud desde nuestro navegador y configuramos las credenciales de **Admnistrador**
 
 
 
