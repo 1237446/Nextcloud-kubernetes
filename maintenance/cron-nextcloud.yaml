@@ -5,9 +5,9 @@ metadata:
   labels:
     app: nextcloud
 spec:
-  schedule: "*/5 * * * *" 
-  successfulJobsHistoryLimit: 1 
-  failedJobsHistoryLimit: 1    
+  schedule: "*/5 * * * *" # Ejecutar cada 5 minutos
+  successfulJobsHistoryLimit: 1 # Mantener solo 1 Job exitoso
+  failedJobsHistoryLimit: 1 # Mantener solo 1 Job fallido   
   jobTemplate:
     spec:
       template:
@@ -19,7 +19,7 @@ spec:
             runAsGroup: 33 
           containers:
           - name: nextcloud-cron
-            image: nextcloud:31.0.6-apache
+            image: nextcloud:31.0.6-apache # Asegúrate de usar la misma imagen que tu Nextcloud
             command: ["php", "-f", "/var/www/html/cron.php"]
             volumeMounts:
             - name: nextcloud
