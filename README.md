@@ -2,10 +2,53 @@
 Integracion de nextcloud en la plataforma de kubernetes
 
 ---
+## Prerequisites for on-premise cluster
+> [!NOTE]
+> Si no tienes instalado Kuberntes puedes usar esta guia https://pabpereza.dev/docs/cursos/kubernetes/instalacion_de_kubernetes_cluster_completo_ubuntu_server_con_kubeadm
+
+### Ingress Controller
+Instalamos NGINX Ingress Controller. Puedes cambiar la version 
+``` 
+https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.3.0/deploy/static/provider/cloud/deploy.yaml
+``` 
+### Cert Manager
+Required to change the 'email' field for create Let's Encrypt account:
+cert-manager/prod_issuer.yaml cert-manager/staging_issuer.yaml
+
+Apply/install cert-manager: kubectl apply -f ./cert-manager/
+## MetalLB LoadBalancer
+Editamos la configuración de kube-proxy en el clúster actual
+``` 
+kubectl edit configmap -n kube-system kube-proxy
+```
+Instalamos MetalLB mediante manifiesto
+```
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.2/config/manifests/metallb-native.yaml
+```
+> [!WARNING]
+> Utilice sus propias direcciones IP cambiando el parámetro "addresses:" en el archivo metallb/ipaddresspool.yaml
+```
+kubectl apply -f metallb/ipaddresspool.yaml
+```
+En este caso usaremos Layer2 
+```
+kubectl apply -f metallb/layer2advertisement.yaml
+```
+### NFS Provisioner
+In nfs-provisioner/nfs-deployment.yaml two different pods are deployed, one representing nfs for HDD and the other for SSD. The NFS server address can be changed in the following snippet:
+env:
+    - name: PROVISIONER_NAME
+      value: ff1.dev/ssd 
+    - name: NFS_SERVER
+      value: 10.0.0.2 #Server IP
+    - name: NFS_PATH
+      value: /ssd01 #NFS server path
+
+
 Antes de realizar la instalacion, verificar los archivos y modificar los valores a los que usara
 ## Instalacion de aplicaciones
 - :dark_sunglasses: **secrets** Este manifiesto estan las contraseñas de las demas aplicaciones
-> [!NOTE]
+> [!WARNING]
 > en el archivo publicado estan credenciales de ejemplo, se recomienta cambiarlas al momento de pase a produccion
 - :floppy_disk: **mariadb** Servira como base de datos para almacenar la informacion de configuracion y metadatos
 - :dvd: **redis** Servira como almacenamiento cache de datos de navegacion dando mayor velocidad
