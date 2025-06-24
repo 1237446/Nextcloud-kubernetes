@@ -1,16 +1,14 @@
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: letsencrypt-collabora # Nombre del ClusterIssuer, puedes usar "letsencrypt-staging" para pruebas
+  name: letsencrypt-collabora 
 spec:
   acme:
-    # Debes reemplazar esto con tu dirección de correo electrónico
-    email: tu-email@example.com
-    server: https://acme-v02.api.letsencrypt.org/directory # Servidor de producción de Let's Encrypt
-    # server: https://acme-staging-v02.api.letsencrypt.org/directory # Servidor de staging para pruebas
+    email: tu-email@example.com # <--- ¡CAMBIA ESTO A TU CORREO ELECTRONICO!
+    server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
-      name: letsencrypt-prod-private-key # Secreto donde se almacenará la clave privada del ClusterIssuer
+      name: letsencrypt-prod-private-key 
     solvers:
     - http01:
         ingress:
-          class: nginx # O el nombre de tu IngressClass si no es "nginx"
+          class: nginx
