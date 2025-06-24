@@ -1,8 +1,8 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: nextcloud-multi-proxy-config
-  namespace: default
+  name: nextcloud-proxy-config
+  namespace: default # <--- IMPORTANT: Replace with your Nextcloud's actual namespace
 spec:
   template:
     spec:
@@ -13,41 +13,38 @@ spec:
         args:
           - |
             CONFIG_FILE="/var/www/html/config/config.php"
-            PROXY_IPS_ARRAY=("172.16.8.88" "172.16.8.23" "172.16.8.27" "192.168.52.145")
-            PROXY_IPS_PHP_STRING=$(printf "'%s'," "${PROXY_IPS_ARRAY[@]}")
-            PROXY_IPS_PHP_STRING=${PROXY_IPS_PHP_STRING%,}
-            PUBLIC_DOMAIN="apu.uni.edu.pe"
-            WEBROOT=""
+            PROXY_IPS_ARRAY=("X.X.X.X" "X.X.X.X") # -- AÑADIR LAS DIRECCIONES IPS DEL INGRESS O/Y NPM ---
+            FORWARDED_FOR_HEADERS=("HTTP_X_FORWARDED_FOR" "HTTP_X_REAL_IP")
+            PUBLIC_DOMAIN="localhost.test" # -- AÑADIR TU DOMINIO ---
 
             echo "Añadiendo configuración de proxy a Nextcloud..."
 
-            # La clave es añadir '    ' (4 espacios) al inicio de cada línea insertada
-            # 1. Asegurar la línea 'trusted_proxies'
-            sed -i "/'trusted_proxies'/d" $CONFIG_FILE
-            if grep -q "'dbpassword'" "$CONFIG_FILE"; then
-                sed -i "/'dbpassword'/a \  'trusted_proxies'   => [${PROXY_IPS_PHP_STRING}]," $CONFIG_FILE
-            else
-                sed -i "/^ *\$CONFIG = array (/a \  'trusted_proxies'   => [${PROXY_IPS_PHP_STRING}]," $CONFIG_FILE
-            fi
+            #-----------------------------------------------------------
+            # Asegurar la línea 'trusted_proxies'
+            #-----------------------------------------------------------
+            PROXY_IPS_PHP_STRINGS=""
+            for i in "${!PROXY_IPS_ARRAY[@]}"; do
+              PROXY_IPS_PHP_STRINGS="${PROXY_IPS_PHP_STRINGS}    ${i} => '${PROXY_IPS_ARRAY[$i]}',\n"
+            done
 
-            # 2. Añadir 'overwritehost'
+            sed -i "/'trusted_proxies'/,/),/d" $CONFIG_FILE
+            sed -i "/'dbpassword'/a \  'trusted_proxies' => array (\n${PROXY_IPS_PHP_STRINGS}  )," $CONFIG_FILE
+
+            #-----------------------------------------------------------
+            # Añadir 'overwritehost'
+            #-----------------------------------------------------------
             sed -i "/'overwritehost'/d" $CONFIG_FILE
-            sed -i "/'trusted_proxies'/a \  'overwritehost'     => '${PUBLIC_DOMAIN}'," $CONFIG_FILE
+            sed -i "/);/i \  'overwritehost'     => '${PUBLIC_DOMAIN}'," $CONFIG_FILE
 
-            # 3. Añadir 'overwriteprotocol'
+            #-----------------------------------------------------------
+            # Añadir 'overwriteprotocol'
+            #-----------------------------------------------------------
             sed -i "/'overwriteprotocol'/d" $CONFIG_FILE
             sed -i "/'overwritehost'/a \  'overwriteprotocol' => 'https'," $CONFIG_FILE
 
-            # 4. Añadir 'overwritewebroot' (solo si WEBROOT no es vacío)
-            sed -i "/'overwritewebroot'/d" $CONFIG_FILE
-            if [ -n "$WEBROOT" ]; then
-              sed -i "/'overwriteprotocol'/a \  'overwritewebroot'  => '${WEBROOT}'," $CONFIG_FILE
-              OVERWRITE_ANCHOR='overwritewebroot'
-            else
-              OVERWRITE_ANCHOR='overwriteprotocol'
-            fi
-
-            # 5. Añadir 'overwritecondaddr'
+            #-----------------------------------------------------------
+            # Añadir 'overwritecondaddr'
+            #-----------------------------------------------------------
             OVERWRITE_COND_REGEX=""
             for ip in "${PROXY_IPS_ARRAY[@]}"; do
                 ESCAPED_IP=$(echo "${ip}" | sed 's/\./\\./g')
@@ -58,18 +55,29 @@ spec:
                 fi
             done
             sed -i "/'overwritecondaddr'/d" $CONFIG_FILE
-            sed -i "/'${OVERWRITE_ANCHOR}'/a \  'overwritecondaddr' => '${OVERWRITE_COND_REGEX}'," $CONFIG_FILE
+            sed -i "/'overwriteprotocol'/a \  'overwritecondaddr' => '${OVERWRITE_COND_REGEX}'," $CONFIG_FILE
 
-            # 6. Añadir 'overwrite.cli.url'
+            #-----------------------------------------------------------
+            # Añadir 'overwrite.cli.url'
+            #-----------------------------------------------------------
             sed -i "/'overwrite.cli.url'/d" $CONFIG_FILE
-            CLI_URL="${PUBLIC_DOMAIN}"
-            if [ -n "$WEBROOT" ]; then
-              CLI_URL="${CLI_URL}${WEBROOT}"
-            fi
-            if [[ "$CLI_URL" != */ ]]; then
-                CLI_URL="${CLI_URL}/"
-            fi
-            sed -i "/'overwritecondaddr'/a \  'overwrite.cli.url' => 'https://${CLI_URL}'," $CONFIG_FILE
+            sed -i "/'overwritecondaddr'/a \  'overwrite.cli.url' => 'https://${PUBLIC_DOMAIN}/'," $CONFIG_FILE
+
+            #-----------------------------------------------------------
+            # Añadir 'forwarded_for_headers'
+            #-----------------------------------------------------------
+            sed -i "/'forwarded_for_headers'/d" $CONFIG_FILE
+            FORWARDEDS=""
+            for i in "${!FORWARDED_FOR_HEADERS[@]}"; do
+              FORWARDEDS="${FORWARDEDS}    ${i} => '${FORWARDED_FOR_HEADERS[$i]}',\n"
+            done
+            sed -i "/'overwrite.cli.url'/a \  'forwarded_for_headers' => array (\n${FORWARDEDS}  )," $CONFIG_FILE
+
+            #-----------------------------------------------------------
+            # Añadir 'remote_address_header'
+            #-----------------------------------------------------------
+            sed -i "/'remote_address_header'/d" $CONFIG_FILE
+            sed -i "/);/i \  'remote_address_header' => 'HTTP_X_REAL_IP'," $CONFIG_FILE        
 
             echo "Configuración de proxy añadida exitosamente."
         envFrom:
