@@ -5,53 +5,49 @@ metadata:
 spec:
   template:
     spec:
-      restartPolicy: OnFailure
+      restartPolicy: OnFailure # Mantiene el pod en caso de fallo
       securityContext:
         fsGroup: 33 
         runAsUser: 33 
       containers:
       - name: config-updater
-        image: nextcloud:31.0.6-apache 
+        image: nextcloud:31.0.6-apache # Asegúrate de usar la misma imagen que tu Nextcloud
         command: ["sh", "-c"]
         args:
           - |
             CONFIG_FILE="/var/www/html/config/config.php"
             REGION_CODE="PE" # <--- ¡CAMBIA ESTO A TU CÓDIGO REGIONAL ISO 3166-1!
 
-            echo "Waiting for Nextcloud's config.php to be available..."
+            echo "Esperando que el archivo config.php de Nextcloud esté disponible..."
             # Asegúrate de que el archivo config.php existe antes de intentar modificarlo
-            # Esto es importante ya que config.php puede ser creado en el primer inicio de Nextcloud
             ATTEMPTS=0
             MAX_ATTEMPTS=30
             while [ ! -f "$CONFIG_FILE" ] && [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
-                echo "config.php not found yet, waiting..."
+                echo "config.php no encontrado aún, esperando..."
                 sleep 5
                 ATTEMPTS=$((ATTEMPTS+1))
             done
 
             if [ ! -f "$CONFIG_FILE" ]; then
-                echo "Error: config.php was not found after multiple attempts. Exiting."
+                echo "Error: config.php no fue encontrado después de múltiples intentos. Saliendo.."
                 exit 1
             fi
 
-            echo "Checking and setting default_phone_region to '$REGION_CODE'..."
+            echo "Comprobando y estableciendo default_phone_region a '$REGION_CODE'..."
 
             # Busca la línea 'default_phone_region'
             if grep -q "'default_phone_region'" "$CONFIG_FILE"; then
                 # Si la línea existe, la actualiza
-                echo "Updating existing default_phone_region entry."
+                echo "Actualización de la entrada default_phone_region existente."
                 sed -i "/'default_phone_region'/c\  'default_phone_region' => '${REGION_CODE}'," "$CONFIG_FILE"
             else
                 # Si la línea no existe, la añade antes del paréntesis de cierre del array
-                echo "Adding new default_phone_region entry."
+                echo "Añadir nueva entrada default_phone_region."
                 sed -i "/);/i \  'default_phone_region' => '${REGION_CODE}'," "$CONFIG_FILE"
             fi
 
-            echo "Configured default_phone_region in $CONFIG_FILE."
-            echo "Restarting Nextcloud pod to apply changes (optional, but good practice)."
-            # deberías reiniciar tu Deployment principal:
-            # kubectl rollout restart deployment/nextcloud-deployment -n <tu-namespace>
-        envFrom: # <-- AÑADIDO y con indentación correcta
+            echo "Configurado default_phone_region en $CONFIG_FILE."
+        envFrom: 
           - secretRef:
               name: password-nextcloud 
         volumeMounts:
