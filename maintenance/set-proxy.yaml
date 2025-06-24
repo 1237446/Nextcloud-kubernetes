@@ -14,9 +14,9 @@ spec:
         args:
           - |
             CONFIG_FILE="/var/www/html/config/config.php"
-            PROXY_IPS_ARRAY=("X.X.X.X" "X.X.X.X") # -- AÑADIR LAS DIRECCIONES IPS DEL INGRESS O/Y NPM ---
+            PROXY_IPS_ARRAY=("X.X.X.X" "X.X.X.X") # -- <--- ¡CAMBIA ESTO A LAS DIRECCIONES IPS DEL INGRESS O/Y NPM!
             FORWARDED_FOR_HEADERS=("HTTP_X_FORWARDED_FOR" "HTTP_X_REAL_IP")
-            PUBLIC_DOMAIN="localhost.test" # -- AÑADIR TU DOMINIO ---
+            PUBLIC_DOMAIN="localhost.test" # <--- ¡CAMBIA ESTO A TU AÑADIR TU DOMINIO!
 
             echo "Esperando que el archivo config.php de Nextcloud esté disponible..."
             # Asegúrate de que el archivo config.php existe antes de intentar modificarlo
