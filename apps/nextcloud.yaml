@@ -8,7 +8,7 @@ metadata:
   labels:
     app: nextcloud
 spec:
-  #storageClassName: nfs-client
+  #storageClassName: nfs-client # <--- ¡DESCOMENTA ESO SI USAS ALMACENAMIENTO NFS!
   accessModes:
     - ReadWriteOnce #Many
   volumeMode: Filesystem
@@ -27,7 +27,7 @@ metadata:
   labels:
     app: nextcloud
 spec:
-  #storageClassName: nfs-client
+  #storageClassName: nfs-client # <--- ¡DESCOMENTA ESO SI USAS ALMACENAMIENTO NFS!
   accessModes:
     - ReadWriteOnce
   resources:
@@ -45,7 +45,7 @@ metadata:
   labels:
     app: nextcloud
 spec:
-  #storageClassName: nfs-client
+  #storageClassName: nfs-client # <--- ¡DESCOMENTA ESO SI USAS ALMACENAMIENTO NFS!
   accessModes:
     - ReadWriteOnce #Many
   volumeMode: Filesystem
@@ -64,7 +64,7 @@ metadata:
   labels:
     app: nextcloud
 spec:
-  #storageClassName: nfs-client
+  #storageClassName: nfs-client # <--- ¡DESCOMENTA ESO SI USAS ALMACENAMIENTO NFS!
   accessModes:
     - ReadWriteOnce #Many
   volumeMode: Filesystem
@@ -135,15 +135,15 @@ spec:
             - containerPort: 80 
           env:
             - name: NEXTCLOUD_TRUSTED_DOMAINS
-              value: "apu.uni.edu.pe apu.pitvirtual.uni.edu.pe 127.0.0.1" 
+              value: "localhost.test 127.0.0.1" # <--- ¡CAMBIA ESTO A TU DOMINIO!
             - name: NO_PROXY
-              value: "localhost,127.0.0.1,nextcloud,10.0.0.0/8,192.168.0.0/16,.svc,.cluster.local"  
+              value: "localhost,127.0.0.1,nextcloud,10.0.0.0/8,192.168.0.0/16,.svc,.cluster.local"  # <--- ¡CAMBIA ESTO A TUS REDES O EQUIPOS QUE NO ESTAN EN EL PROXY!
             - name: NEXTCLOUD_OVERWRITEPROTOCOL
               value: "https"
             - name: NEXTCLOUD_OVERWRITEHOST
-              value: "apu.uni.edu.pe"
+              value: "localhost.test" # <--- ¡CAMBIA ESTO A TU DOMINIO!
             - name: NEXTCLOUD_OVERWRITECLIURL
-              value: "https://apu.uni.edu.pe"
+              value: "https://localhost.test" # <--- ¡CAMBIA ESTO A TU DOMINIO!
             - name: PHP_OPCACHE_MEMORY_LIMIT 
               value: "2480M"
             - name: PHP_MEMORY_LIMIT 
@@ -162,17 +162,17 @@ spec:
             - name: MYSQL_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: password-nextcloud 
+                  name: password-nextcloud # <--- ¡ASEGURATE QUE SEA TU SECRET!
                   key: mariadb_database 
             - name: MYSQL_USER 
               valueFrom:
                 secretKeyRef:
-                  name: password-nextcloud 
+                  name: password-nextcloud # <--- ¡ASEGURATE QUE SEA TU SECRET!
                   key: mariadb_user 
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: password-nextcloud
+                  name: password-nextcloud # <--- ¡ASEGURATE QUE SEA TU SECRET!
                   key: mariadb_password
             #---------------------------------------------------------
             # Conexion a redis
@@ -181,10 +181,10 @@ spec:
               value: "redis" 
             - name: REDIS_PORT
               value: "6379" 
-            - name: REDIS_HOST_PASSWORD
+            - name: REDIS_HOST_PASSWORD 
               valueFrom:
                 secretKeyRef:
-                  name: password-nextcloud
+                  name: password-nextcloud # <--- ¡ASEGURATE QUE SEA TU SECRET!
                   key: redis_password
           #-----------------------------------------------------------
           # limites de recursos
