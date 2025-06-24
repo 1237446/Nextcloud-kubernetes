@@ -1,0 +1,203 @@
+#---------------------------------------------------------------------
+# PersistentVolumeClaim para Datos de ClamAV
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clamav-db
+spec:
+  #storageClassName: nfs-client # <--- ¡DESCOMENTA ESO SI USAS ALMACENAMIENTO NFS!
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+#---------------------------------------------------------------------
+# PersistentVolumeClaim logs de ClamAV
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clamav-logs
+spec:
+  #storageClassName: nfs-client # <--- ¡DESCOMENTA ESO SI USAS ALMACENAMIENTO NFS!
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+#---------------------------------------------------------------------
+# Archivo de configuracion clamd.conf
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clamav-config
+data:
+  clamd.conf: |
+    # /etc/clamav/clamd.conf
+    LogFile /var/log/clamav/clamd.log
+    LogFileMaxSize 1048576
+    LogTime yes
+    PidFile /var/run/clamav/clamd.pid
+    LocalSocket /run/clamav/clamd.sock
+    DatabaseDirectory /var/lib/clamav
+    OfficialDatabaseOnly true
+    TCPSocket 3310
+    TCPAddr 0.0.0.0
+    User clamav
+    StreamMaxLength 0
+    MaxScanSize 200M
+    MaxFileSize 50M
+    MaxRecursion 16
+    MaxFiles 100000
+    AlgorithmicDetection yes
+    DetectPUA yes
+    HeuristicScanPrecedence yes
+    ScanMail yes
+    ScanArchive yes
+    ScanPDF yes
+    ScanOLE2 yes
+    ScanSWF yes
+    ScanPE yes
+    ScanELF yes
+    ScanHTML yes
+    ScanXMLDOCS yes
+    ScanHWP3 yes
+    ScanPartialMessages yes
+    PhishingSignatures yes
+    PhishingScanURLs yes
+    Bytecode yes
+    BytecodeSecurity TrustSigned
+    AlertBrokenExecutables yes
+    AlertEncryptedArchive yes
+    AlertEncryptedDoc yes
+    AlertBrokenMedia yes
+    AlertEncrypted yes
+    AlertOLE2Macros yes
+    AlertPartitionIntersection yes
+    SelfCheck 300
+
+---
+#---------------------------------------------------------------------
+# Archivo de configuracion freshclam.conf
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: freshclam-config
+data:
+  freshclam.conf: |
+    # /etc/clamav/freshclam.conf
+    DatabaseDirectory /var/lib/clamav
+    UpdateLogFile /var/log/clamav/freshclam.log
+    LogFileMaxSize 1048576
+    LogTime yes
+    PidFile /var/run/clamav/freshclam.pid
+    DatabaseOwner clamav
+    DatabaseMirror database.clamav.net
+    Checks 12 
+    Foreground yes
+    NotifyClamd /etc/clamav/clamd.conf 
+    ReceiveTimeout 60 
+    ScriptedUpdates yes
+    Bytecode yes
+
+---
+#---------------------------------------------------------------------
+# Modo de publicacion de ClamAV
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: clamav
+spec:
+  type: ClusterIP
+  selector:
+    app: clamav
+  ports:
+    - port: 3310
+      targetPort: 3310 
+      protocol: TCP
+
+---
+#---------------------------------------------------------------------
+# ClamAV (Antivirus)
+#---------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clamav
+  labels:
+    app: clamav
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clamav
+  template:
+    metadata:
+      labels:
+        app: clamav
+    spec:
+      containers:
+      - name: clamav
+        image: clamav/clamav:1.4.3
+        ports:
+        - name: clamd-socket
+          containerPort: 3310
+          protocol: TCP
+        #-----------------------------------------------------------
+        # Verifica si el contenedor está vivo y funcionando
+        #-----------------------------------------------------------
+        livenessProbe:
+          tcpSocket:
+            port: clamd-socket
+          initialDelaySeconds: 300
+          periodSeconds: 60
+        #-----------------------------------------------------------
+        # Verifica si el contenedor está listo para servir tráfico.
+        #-----------------------------------------------------------
+        readinessProbe:
+          exec:
+            command: ["clamdscan", "--version"]
+          initialDelaySeconds: 300
+          periodSeconds: 10
+        #-----------------------------------------------------------
+        # limites de recursos
+        #-----------------------------------------------------------
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        volumeMounts:
+        - name: clamav-db
+          mountPath: /var/lib/clamav
+        - name: clamav-config
+          mountPath: /etc/clamav/clamd.conf
+          subPath: clamd.conf
+        - name: freshclam-config
+          mountPath: /etc/clamav/freshclam.conf
+          subPath: freshclam.conf
+        - name: clamav-logs
+          mountPath: /var/log/clamav
+      volumes:
+      - name: clamav-db
+        persistentVolumeClaim:
+          claimName: clamav-db
+      - name: clamav-logs
+        persistentVolumeClaim:
+          claimName: clamav-logs
+      - name: clamav-config
+        configMap:
+          name: clamav-config
+      - name: freshclam-config
+        configMap:
+          name: freshclam-config
