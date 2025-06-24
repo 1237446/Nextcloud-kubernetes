@@ -8,7 +8,7 @@ metadata:
   labels:
     app: mariadb
 spec:
-  #storageClassName: nfs-client
+  #storageClassName: nfs-client # <--- ¡DESCOMENTA ESO SI USAS ALMACENAMIENTO NFS!
   accessModes:
     - ReadWriteOnce
   resources:
@@ -71,22 +71,22 @@ spec:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: password-nextcloud
+                  name: password-nextcloud # <--- ¡ASEGURATE QUE SEA TU SECRET!
                   key: mariadb_root_password
             - name: MYSQL_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: password-nextcloud
+                  name: password-nextcloud # <--- ¡ASEGURATE QUE SEA TU SECRET!
                   key: mariadb_database
             - name: MYSQL_USER
               valueFrom:
                 secretKeyRef:
-                  name: password-nextcloud
+                  name: password-nextcloud # <--- ¡ASEGURATE QUE SEA TU SECRET!
                   key: mariadb_user
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: password-nextcloud
+                  name: password-nextcloud # <--- ¡ASEGURATE QUE SEA TU SECRET!
                   key: mariadb_password
           #-----------------------------------------------------------
           # limites de recursos
