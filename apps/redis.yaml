@@ -8,7 +8,7 @@ metadata:
   labels:
     app: redis 
 spec:
-  #storageClassName: nfs-client # Clase de almacenamiento NFS para persistencia
+  #storageClassName: nfs-client # <--- ¡DESCOMENTA ESO SI USAS ALMACENAMIENTO NFS!
   accessModes:
     - ReadWriteOnce 
   resources:
@@ -68,7 +68,7 @@ spec:
             - name: REDIS_PASSWORD 
               valueFrom:
                 secretKeyRef:
-                  name: password-nextcloud 
+                  name: password-nextcloud # <--- ¡ASEGURATE QUE SEA TU SECRET!
                   key: redis_password 
           args: ["--save", "60", "1", "--loglevel", "warning", "--requirepass", "$(REDIS_PASSWORD)"]
           #-----------------------------------------------------------
