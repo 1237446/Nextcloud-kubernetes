@@ -121,7 +121,6 @@ nextcloud-8767f454f-9zl7x                          1/1     Running     0        
 nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running     0             5m
 redis-6b468c499f-4jj7t                             1/1     Running     0             5m
 ```
-![guia](/Wallpapers/wallpaperflare.com_wallpaper(5).jpg)
 
 
 
