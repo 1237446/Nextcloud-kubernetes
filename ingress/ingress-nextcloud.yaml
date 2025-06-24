@@ -8,29 +8,29 @@ metadata:
   labels:
     app: nextcloud
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-nextcloud" # Asegúrate de que este ClusterIssuer esté creado
+    cert-manager.io/cluster-issuer: "letsencrypt-nextcloud" 
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "0" # Permite archivos de cualquier tamaño
-    nginx.ingress.kubernetes.io/use-regex: "true" # Permite el uso de expresiones regulares en las rutas
-    nginx.ingress.kubernetes.io/proxy-buffering: "off" # Desactiva el buffering para mejorar el rendimiento con archivos grandes
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600" # Aumenta el tiempo de espera para solicitudes largas
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600" # Aumenta el tiempo de espera para envíos largos 
+    nginx.ingress.kubernetes.io/proxy-body-size: "0" 
+    nginx.ingress.kubernetes.io/use-regex: "true" 
+    nginx.ingress.kubernetes.io/proxy-buffering: "off" 
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600" 
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600" 
     nginx.ingress.kubernetes.io/proxy-hide-header: "Upgrade"
     nginx.ingress.kubernetes.io/proxy-set-header: "X-Real-IP $remote_addr,X-Forwarded-For $proxy_add_x_forwarded_for,X-Forwarded-Host $host,Host $host,X-Forwarded-Proto $scheme"    
 spec:    
-  ingressClassName: nginx # Asegúrate de que NGINX Ingress Controller esté instalado y configurado
+  ingressClassName: nginx 
   rules:
-  - host: apu.uni.edu.pe # Reemplaza con tu dominio deseado
+  - host: localhost.test # <--- ¡CAMBIA ESTO A TU AÑADIR TU DOMINIO!
     http:
       paths:
       - path: /
         pathType: Prefix 
         backend:
           service:
-            name: nextcloud # Nombre del Service de Nextcloud
+            name: nextcloud 
             port:
-              number: 80 # Puerto del Service de Nextcloud
+              number: 80 
   tls:
   - hosts:
-    - apu.uni.edu.pe # Reemplaza con tu dominio
-    secretName: apu.uni.edu.pe-tls # El Secret donde cert-manager almacenará el certificado
+    - localhost.test # <--- ¡CAMBIA ESTO A TU DOMINIO!
+    secretName: localhost.test-tls # <--- ¡CAMBIA ESTO A DONDE CERT-MANAGER ALMACENARA EL CERTIFICADO
