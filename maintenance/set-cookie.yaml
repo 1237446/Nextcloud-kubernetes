@@ -5,24 +5,48 @@ metadata:
 spec:
   template:
     spec:
-      restartPolicy: OnFailure
+      restartPolicy: OnFailure # Mantiene el pod en caso de fallo
       securityContext:
         fsGroup: 33 
         runAsUser: 33 
       containers:
       - name: config-updater
-        image: nextcloud:31.0.6-apache
+        image: nextcloud:31.0.6-apache # Asegúrate de usar la misma imagen que tu Nextcloud
         command: ["sh", "-c"]
         args:
           - |
             CONFIG_FILE="/var/www/html/config/config.php"
             COOKIE_SAME_SITE_VALUE="Lax" # <--- Puedes cambiar esto a "Strict" si lo necesitas
 
+            echo "Esperando que el archivo config.php de Nextcloud esté disponible..."
+            # Asegúrate de que el archivo config.php existe antes de intentar modificarlo
+            ATTEMPTS=0
+            MAX_ATTEMPTS=30
+            while [ ! -f "$CONFIG_FILE" ] && [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
+                echo "config.php no encontrado aún, esperando..."
+                sleep 5
+                ATTEMPTS=$((ATTEMPTS+1))
+            done
+
+            if [ ! -f "$CONFIG_FILE" ]; then
+                echo "Error: config.php no fue encontrado después de múltiples intentos. Saliendo.."
+                exit 1
+            fi
+            
+            echo "Verificando y configurando 'cookie_same_site' a '$COOKIE_SAME_SITE_VALUE'..."
+
+            # Busca la línea 'cookie_same_site'
             if grep -q "'cookie_same_site'" "$CONFIG_FILE"; then
+                # Si la línea existe, la actualiza
+                echo "Actualizando entrada existente para 'cookie_same_site'."
                 sed -i "/'cookie_same_site'/c\ 'cookie_same_site' => '${COOKIE_SAME_SITE_VALUE}'," "$CONFIG_FILE"
             else
+                # Si la línea no existe, la añade antes del ); final del array $CONFIG
+                echo "Añadiendo nueva entrada para 'cookie_same_site'."
                 sed -i "/);/i \  'cookie_same_site' => '${COOKIE_SAME_SITE_VALUE}'," "$CONFIG_FILE"
             fi
+
+            echo "Configurado 'cookie_same_site' en $CONFIG_FILE."
         volumeMounts:
           - name: nextcloud-config 
             mountPath: /var/www/html/config
