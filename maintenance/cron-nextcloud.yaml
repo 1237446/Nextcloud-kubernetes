@@ -32,7 +32,7 @@ spec:
               mountPath: /var/www/html/custom_apps 
             envFrom:
             - secretRef:
-                name: password-nextcloud
+                name: password-nextcloud # <--- ¡ASEGURATE QUE SEA TU SECRET!
           restartPolicy: OnFailure
           volumes:
             - name: nextcloud
