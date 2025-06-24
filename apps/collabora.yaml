@@ -1,4 +1,22 @@
 #---------------------------------------------------------------------
+# PersistentVolumeClaim para datos de Collabora
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: collabora-pvc-data
+  labels:
+    app: collabora
+spec:
+  #storageClassName: nfs-client # <--- ¡DESCOMENTA ESO SI USAS ALMACENAMIENTO NFS!
+  accessModes: 
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+#---------------------------------------------------------------------
 # Modo de publicacion de Collabora
 #---------------------------------------------------------------------
 apiVersion: v1
@@ -12,7 +30,7 @@ spec:
     - port: 9980
       targetPort: 9980
       protocol: TCP
-  type: ClusterIP # Ingress solo funciona con Services de tipo ClusterIP
+  type: ClusterIP 
 
 ---
 #---------------------------------------------------------------------
@@ -36,67 +54,51 @@ spec:
     spec:
       containers:
         - name: collabora-code
-          image: collabora/code:latest # Asegúrate de usar una versión específica si es para producción, ej. collabora/code:22.05.10.4.1
+          image: collabora/code:latest
           ports:
             - containerPort: 9980
               name: collabora
-          resources:
-            requests:
-              cpu: "500m"
-              memory: "512Mi"
-            limits:
-              cpu: "1"
-              memory: "1Gi"
           env:
             - name: dictionaries
               value: "es_ES en_US"
             - name: timezone
               value: "America/Lima"
-            # --- Consolidación de extra_params (¡AHORA ES UNA SOLA DEFINICIÓN!) ---
-            # --o:ssl.termination=true: Crucial para indicar que un proxy (Ingress/NPM) maneja el SSL.
-            # --o:host_url=https://apu.pitvirtual.uni.edu.pe: La URL HTTPS externa de Collabora que se usará para generar enlaces.
-            # --o:ssl.enable=false: Esto no es necesario si usas ssl.termination=true, ya que indica que Collabora no debe intentar manejar SSL internamente.
             - name: extra_params
-              value: "--o:ssl.enable=false --o:ssl.termination=true --o:host_url=https://apu.pitvirtual.uni.edu.pe"
-            # --- Fin de la consolidación de extra_params ---
-            # El dominio de Nextcloud (el host que hará las peticiones WOPI) escapando los puntos.
-            # Collabora usa esto para validar las peticiones WOPI.
-            - name: domain
-              value: "apu\\.uni\\.edu\\.pe" # <--- REEMPLAZA CON TU DOMINIO DE NEXTCLOUD, ESCAPANDO LOS PUNTOS
-            - name: username # Usuario para la consola de administración de Collabora
-              value: "admin"
-            - name: password # Contraseña para la consola de administración de Collabora
+              value: "--o:ssl.enable=false --o:ssl.termination=true --o:host_url=https://localhost.test/" # <--- ¡CAMBIA ESTO A TU DOMINIO DE NEXTCLOUD!
+            - name: username
+              value: "admin" # <--- ¡USUARIO DE ADMINISTRACION!
+            - name: password
               valueFrom:
                 secretKeyRef:
                   name: password-nextcloud
-                  key: collabora_admin_password
-            
-            # --- Aliasgroup1: Lista de permitidos para peticiones WOPI ---
-            # Esto es VITAL para la seguridad y el funcionamiento de Nextcloud Office.
-            # Debe ser la URL pública (HTTPS) de tu Nextcloud tal como la ve el navegador del usuario.
-            # Puedes añadir más aliasgroup si es necesario (aliasgroup2, aliasgroup3, etc.)
-            - name: aliasgroup1
-              value: "https://apu.uni.edu.pe" # <--- REEMPLAZA CON LA URL HTTPS DE TU NEXTCLOUD
-          securityContext: # Necesario para Collabora
-            capabilities:
-              add: ["MKNOD"]
-          #-----------------------------------------------------------
-          # # Verifica si el contenedor está vivo y funcionando
-          # #-----------------------------------------------------------
-          # livenessProbe:
-          #   httpGet:
-          #     path: /hosting/discovery
-          #     port: 9980
-          #   initialDelaySeconds: 60
-          #   periodSeconds: 20
-          #   failureThreshold: 3
-          # #-----------------------------------------------------------
-          # # Verifica si el contenedor está listo para servir tráfico.
-          # #-----------------------------------------------------------
-          # readinessProbe:
-          #   httpGet:
-          #     path: /hosting/discovery # Endpoint de health de Collabora
-          #     port: 9980
-          #   initialDelaySeconds: 30
-          #   periodSeconds: 10
-          #   failureThreshold: 5
+                  key: collabora_admin_password # <--- ¡ASEGURATE QUE SEA TU SECRET!
+            - name: domain
+              value: "localhost.test"  # <--- ¡CAMBIA ESTO A TU DOMINIO DE COLLABORA!
+            - name: TZ
+              value: "America/Lima"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+          securityContext:
+            capabilities: { add: ["MKNOD"] }
+          readinessProbe:
+            httpGet: { path: /hosting/discovery, port: 9980 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            httpGet: { path: /hosting/discovery, port: 9980 }
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            - name: collabora-data
+              mountPath: /var/lib/lool
+      volumes:
+        - name: collabora-data
+          persistentVolumeClaim:
+            claimName: collabora-pvc-data
