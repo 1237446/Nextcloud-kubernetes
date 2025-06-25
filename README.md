@@ -128,9 +128,9 @@ verificamos que ingress este ejecutandoce correctamente
 kubectl get pods
 ```
 ```
-NAME                CLASS   HOSTS                       ADDRESS       PORTS     AGE
-collabora-ingress   nginx   apu.pitvirtual.uni.edu.pe   172.16.8.88   80, 443   5d6h
-nextcloud-ingress   nginx   apu.uni.edu.pe              172.16.8.88   80, 443   5d6h
+NAME                CLASS   HOSTS                       ADDRESS           PORTS     AGE
+collabora-ingress   nginx   collabora.local.test        192.168.1.100     80, 443   5d6h
+nextcloud-ingress   nginx   collabora.local.test        192.168.1.101     80, 443   5d6h
 Una vez revizado y edita los archivos procederemos a la ejecutar los manifiestos
 ```
 
@@ -209,10 +209,26 @@ Aplicado la primara parte de los manifiestos de correccion, refrescamos la pagin
 
 ![guia](/images/imagen-5.png)
 
-## Configuracion de Nextcloud
+## Configuracion adicional de Nextcloud
 las configuraciones que se va a aplicar es para optimizar el rendimiento y añadir una capa de seguridad mas
 
 ### Configuracion de cron
+configuraremos los trabajos en segundo plano, para ello aplicamos el manifiesto cron
+``` 
+kubectl apply -f maintenance/cron-nextcloud.yaml
+```
+
+Ingresamos al panel de administracion, seleccionamos el icono ubicado en la parte superior derecha > Configuraciones de administracion > Ajustes basicos y seleccionamos cron. 
+Ahora cada 5 minutos se ejecutara un job el cual ejecuta el archivo cron.php y podremos verlo en los pods para su monitoreo
+``` 
+NAME                                               READY   STATUS              RESTARTS   AGE
+clamav-8667bfc7fc-6ds25                            0/1     ContainerCreating   0          6s
+collabora-745b5cdc-nmr8d                           0/1     ContainerCreating   0          6s
+mariadb-c6d7854df-m7kv5                            0/1     ContainerCreating   0          5s
+nextcloud-5cc9dc666f-n9pm2                         0/1     Init:0/2            0          5s
+nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running             0          3m
+redis-686556cf6d-rddd5                             0/1     ContainerCreating   0          5s
+```
 
 ### Seguridad de dominio web
 si tenemos publicado en internet nuestro servicio, aplicamos este manifiesto el cual añade una regla extra para que el servicio pase las pruebas de seguridad de nextcloud
