@@ -10,12 +10,16 @@ Antes de realizar la instalacion, verificar los archivos y modificar los valores
 - :floppy_disk: **mariadb** Servira como base de datos para almacenar la informacion de configuracion y metadatos
 - :dvd: **redis** Servira como almacenamiento cache de datos de navegacion dando mayor velocidad
 - :open_file_folder: **nextcloud** Es el aplicativo principal, el cual creara nuestra nube privada
-- :japanese_ogre: **clamav** Servira como antivirus para los archivos alojados y escaneara los archivos que se quierean subir
+- :japanese_ogre: **clamAV** Servira como antivirus para los archivos alojados y escaneara los archivos que se quierean subir
 - :page_with_curl: **collabora** Servira como suite de ofimatica para los documentos via web 
 ---
 ## Requisitos previos
 > [!TIP]
-> Si no tienes instalado Kuberntes puedes usar esta [guia](https://pabpereza.dev/docs/cursos/kubernetes/instalacion_de_kubernetes_cluster_completo_ubuntu_server_con_kubeadm)
+> Si no tienes instalado Kuberntes puedes usar esta [guia](https://nginxproxymanager.com/guide/)
+
+> [!NOTE]
+> El server de NPM debes intarlo en otra instancia fuera de kubernetes. Puedes instalarlo siguiendo esta [guia](https://pabpereza.dev/docs/cursos/kubernetes/instalacion_de_kubernetes_cluster_completo_ubuntu_server_con_kubeadm)
+
 ### :bookmark:Ingress Controller
 Instalamos NGINX Ingress Controller. Puedes cambiar la version 
 ``` 
@@ -105,7 +109,7 @@ Instalamos mediante manifiesto
 ```
 kubectl apply -f dynamic-nfs.yaml
 ```
-verificamos que ingress este ejecutandoce correctamente
+Verificamos que ingress este ejecutandoce correctamente
 ``` 
 kubectl get pods
 ```
@@ -119,11 +123,11 @@ En primera instancia instalamos los certificados
 ```
 kubectl apply -f certificados/
 ```
-posteriormente instalamos los manifiestos de ingress 
+Posteriormente instalamos los manifiestos de ingress 
 ```
 kubectl apply -f ingress/
 ```
-verificamos que ingress este ejecutandoce correctamente
+Verificamos que ingress este ejecutandoce correctamente
 ``` 
 kubectl get pods
 ```
@@ -138,7 +142,7 @@ Ahora podemos instalar las aplicaciones mediante los mifiestos
 ```
 kubectl apply -f apps/
 ```
-verificamos que estan ejecutandoce correctamente y Esperemos a que los pods esten en estado Runnig para poder continuar
+Verificamos que estan ejecutandoce correctamente y Esperemos a que los pods esten en estado Runnig para poder continuar
 ``` 
 kubectl get pods
 ```
@@ -180,7 +184,7 @@ Ahora corregiremos la mayoria de errores que aparecen en Nextcloud
 > Puedes revisar los logs del pod en caso de algun error
 
 ### Manteniento de base de datos 
-este manifiesto establece una pequeña ventana de manteniento, en el cual:
+Este manifiesto establece una pequeña ventana de manteniento, en el cual:
 - Corrige las tablas de mariadb
 - Añade tablas faltantes (si es el caso)
 - Establece el manteniento automatico
@@ -192,7 +196,7 @@ kubectl apply -f maintenance/set-db.yaml
 ```
 
 ### Establecer la region de predeterminada para teléfonos
-este manifiesto añade la region para telefonos
+Este manifiesto añade la region para telefonos
 
 Para ello ejecutamos el manifiesto set-db.yaml
 ``` 
@@ -210,32 +214,75 @@ Aplicado la primara parte de los manifiestos de correccion, refrescamos la pagin
 ![guia](/images/imagen-5.png)
 
 ## Configuracion adicional de Nextcloud
-las configuraciones que se va a aplicar es para optimizar el rendimiento y añadir una capa de seguridad mas
+Las configuraciones que se va a aplicar es para optimizar el rendimiento y añadir una capa de seguridad mas
 
 ### Configuracion de cron
-configuraremos los trabajos en segundo plano, para ello aplicamos el manifiesto cron
+Configuraremos los trabajos en segundo plano, para ello aplicamos el manifiesto cron
 ``` 
 kubectl apply -f maintenance/cron-nextcloud.yaml
 ```
 
 Ingresamos al panel de administracion, seleccionamos el icono ubicado en la parte superior derecha > Configuraciones de administracion > Ajustes basicos y seleccionamos cron. 
 Ahora cada 5 minutos se ejecutara un job el cual ejecuta el archivo cron.php y podremos verlo en los pods para su monitoreo
+
+![guia](/images/imagen-7.png)
 ``` 
-NAME                                               READY   STATUS              RESTARTS   AGE
-clamav-8667bfc7fc-6ds25                            0/1     ContainerCreating   0          6s
-collabora-745b5cdc-nmr8d                           0/1     ContainerCreating   0          6s
-mariadb-c6d7854df-m7kv5                            0/1     ContainerCreating   0          5s
-nextcloud-5cc9dc666f-n9pm2                         0/1     Init:0/2            0          5s
-nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running             0          3m
-redis-686556cf6d-rddd5                             0/1     ContainerCreating   0          5s
+NAME                                               READY   STATUS      RESTARTS      AGE
+clamav-66d94fb94b-lj287                            1/1     Running     1             30m
+collabora-84ffc497f4-jmd4d                         1/1     Running     0             30m
+mariadb-b4b4c9949-m88cf                            1/1     Running     0             30m
+nextcloud-8767f454f-9zl7x                          1/1     Running     0             30m
+nextcloud-cron-29180975-fdvkr                      0/1     Completed   0             2m40s
+nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running     1             41m
+redis-6b468c499f-4jj7t                             1/1     Running     0             30m
 ```
 
 ### Seguridad de dominio web
-si tenemos publicado en internet nuestro servicio, aplicamos este manifiesto el cual añade una regla extra para que el servicio pase las pruebas de seguridad de nextcloud
+Si tenemos publicado en internet nuestro servicio, aplicamos este manifiesto el cual añade una regla extra para que el servicio pase las pruebas de seguridad de nextcloud
 ``` 
 kubectl apply -f maintenance/set-cookie.yaml
 ```
 
-aplicado el manifiesto ingresamos a [scan.nextcloud.com](https://scan.nextcloud.com/) y comprobamos el nivel de seguridad
+Aplicado el manifiesto ingresamos a [scan.nextcloud.com](https://scan.nextcloud.com/) y comprobamos el nivel de seguridad
 
 ![guia](/images/imagen-6.png)
+
+## Integracion de Collabora y ClamAV a Nextcloud
+Ahora realizaremos la integracion de clamav para el escaneo de los archivos y de collabora para el manejo de los documentos
+
+### ClamAV
+Para la instalacion de ClamAV seleccionamos el icono ubicado en la parte superior derecha > Aplicaciones > Seguridad e instalamos el aplicativo **Antifirus for files**
+
+![guia](/images/imagen-8.png)
+
+Regresamos a Configuraciones de administracion y nos dirigimos a **seguridad**, hasta la parte inferior donde estara el apartado de **Antivirus para archivos** en la cual configuramos de esta manera
+
+- **modo:** Dominio de clamAV
+- **dominio:** clamav
+- **puerto:** 3310
+
+![guia](/images/imagen-9.png)
+
+Ahora nos dirigimos a **Archivos** e intentamos subir un archivo eicar, para probar el correcto funcionamiento de clamAV
+
+> [!NOTE]
+> Puedes descargar los archivos eicar de prueba [aqui](https://www.eicar.org/download-anti-malware-testfile/)
+
+![guia](/images/imagen-10.png)
+
+### Collabora
+Para la instalacion de Collabora seleccionamos el icono ubicado en la parte superior derecha > Aplicaciones > Oficina y texto e instalamos el aplicativo **Nextcloud Office**
+
+![guia](/images/imagen-11.png)
+
+Regresamos a Configuraciones de administracion y nos dirigimos a **Nextcloud Office**, seleccionamos **Use su propio servidor** e ingresamos la url del dominio de Collabora
+
+![guia](/images/imagen-12.png)
+
+Ahora nos dirigimos a **Archivos** e ingresamos a Documentes y abrimos el documento **Welcome to Nextcloud Hub.docx**
+
+![guia](/images/imagen-13.png)
+
+![guia](/images/imagen-14.png)
+
+
