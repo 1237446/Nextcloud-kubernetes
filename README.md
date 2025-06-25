@@ -1,6 +1,8 @@
 # Nextcloud en kubernetes
 Integracion de nextcloud en la plataforma de kubernetes
 
+![guia](/images/imagen-0.png)
+
 Antes de realizar la instalacion, verificar los archivos y modificar los valores a los que usara
 - :key: **secrets** Este manifiesto estan las contraseñas de las demas aplicaciones
 > [!IMPORTANT]
@@ -144,12 +146,12 @@ Ingresamos a nextcloud desde nuestro navegador con el dominio configurado y conf
 ![guia](/images/imagen-1.png)
 
 
-Instalamos las apliacaciones que deseemos
+Instalamos las aplicaciones que usaremos
 
 ![guia](/images/imagen-2.png)
 
 
-Una vez instalado, estaremos en el dashboard de Nextcloud
+Una vez instalado, nos redireccionara al dashboard de Nextcloud
 
 ![guia](/images/imagen-3.png)
 
