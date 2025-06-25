@@ -14,8 +14,8 @@ spec:
         args:
           - |
             CONFIG_FILE="/var/www/html/config/config.php"
-            PROXY_IPS_ARRAY=("X.X.X.X" "X.X.X.X") # -- <--- ¡CAMBIA ESTO A LAS DIRECCIONES IPS DEL INGRESS O/Y NPM!
-            FORWARDED_FOR_HEADERS=("HTTP_X_FORWARDED_FOR" "HTTP_X_REAL_IP")
+            PROXY_IPS_ARRAY=("Red de pods" "IP de ingress") # -- <--- ¡CAMBIA ESTO A LAS DIRECCIONES IPS DEL INGRESS O/Y NPM!
+            FORWARDED_FOR_HEADERS=("HTTP_X_FORWARDED_FOR" "HTTP_X_FORWARDED" "HTTP_X_FORWARDED_PROTO")
             PUBLIC_DOMAIN="localhost.test" # <--- ¡CAMBIA ESTO A TU DOMINIO!
 
             echo "Esperando que el archivo config.php de Nextcloud esté disponible..."
@@ -51,19 +51,6 @@ spec:
             echo "Añadir nueva entrada overwriteprotocol"
             sed -i "/'overwriteprotocol'/d" $CONFIG_FILE
             sed -i "/'overwritehost'/a \  'overwriteprotocol' => 'https'," $CONFIG_FILE
-
-            OVERWRITE_COND_REGEX=""
-            for ip in "${PROXY_IPS_ARRAY[@]}"; do
-                ESCAPED_IP=$(echo "${ip}" | sed 's/\./\\./g')
-                if [ -z "$OVERWRITE_COND_REGEX" ]; then
-                    OVERWRITE_COND_REGEX="^${ESCAPED_IP}$"
-                else
-                    OVERWRITE_COND_REGEX="${OVERWRITE_COND_REGEX}|^${ESCAPED_IP}$"
-                fi
-            done
-            echo "Añadir nueva entrada overwritecondaddr"
-            sed -i "/'overwritecondaddr'/d" $CONFIG_FILE
-            sed -i "/'overwriteprotocol'/a \  'overwritecondaddr' => '${OVERWRITE_COND_REGEX}'," $CONFIG_FILE
 
             echo "Añadir nueva entrada overwrite.cli.url"
             sed -i "/'overwrite.cli.url'/d" $CONFIG_FILE
