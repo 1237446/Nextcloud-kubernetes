@@ -95,11 +95,23 @@ creamos el manifiesto
 > [!WARNING]
 > Utilice sus propios datos
 ```
-helm install nfs-subdir-external-provisioner \
+helm template nfs-subdir-external-provisioner \
 nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
 --set nfs.server=10.124.0.9 \
 --set nfs.path=/data/nfs \
---set storageClass.onDelete=true
+--set storageClass.onDelete=true > dynamic-nfs.yaml
+```
+Instalamos mediante manifiesto
+```
+kubectl apply -f dynamic-nfs.yaml
+```
+verificamos que ingress este ejecutandoce correctamente
+``` 
+kubectl get pods
+```
+```
+NAME                                               READY   STATUS              RESTARTS   AGE
+nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running             0          60s
 ```
 
 ## Instalacion de aplicaciones
@@ -197,7 +209,17 @@ Aplicado la primara parte de los manifiestos de correccion, refrescamos la pagin
 
 ![guia](/images/imagen-5.png)
 
+## Configuracion de Nextcloud
+las configuraciones que se va a aplicar es para optimizar el rendimiento y añadir una capa de seguridad mas
 
+### Configuracion de cron
 
+### Seguridad de dominio web
+si tenemos publicado en internet nuestro servicio, aplicamos este manifiesto el cual añade una regla extra para que el servicio pase las pruebas de seguridad de nextcloud
+``` 
+kubectl apply -f maintenance/set-cookie.yaml
+```
 
+aplicado el manifiesto ingresamos a [scan.nextcloud.com](https://scan.nextcloud.com/) y comprobamos el nivel de seguridad
 
+![guia](/images/imagen-6.png)
