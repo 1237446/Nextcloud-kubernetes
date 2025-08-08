@@ -430,7 +430,7 @@ $CONFIG = array (
   //'trusted_domains' => 
   //array (
   //  0 => 'localhost',
-  //  1 => 'nextcloud.localhost.com',
+  //  1 => 'apu.uni.edu.pe',
   //),
   'datadirectory' => '/var/www/html/data',
   'dbtype' => 'mysql',
@@ -486,6 +486,10 @@ $CONFIG = array (
 ```
 
 Ejecutar job de correccion
+> [!NOTE]
+> - Corrige las tablas de mariadb
+> - Añade tablas faltantes (si es el caso)
+> - Establece el manteniento automatico
 ```
 kubectl apply -f set-db.yaml
 ```
@@ -502,8 +506,17 @@ nextcloud-db-repair-job   Complete   1/1           69s        2m23s
 ### Nginx Proxy Manager
 Ingresamos y creamos el certificado SSL
 
+![guia](/images/proxy-3.png)
+
 Creamos proxy host
-La dirección ip es la de ingress​
+> [!NOTE]
+> La dirección ip es la de ingress​
+
+![guia](/images/proxy-0.png)
+
+![guia](/images/proxy-1.png)
+
+![guia](/images/proxy-2.png)
 ```
 proxy_set_header X-Real-IP $remote_addr;
 12proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -515,175 +528,115 @@ proxy_read_timeout 86400s;
 proxy_hide_header Upgrade;
 ```
 
+## Nextcloud dashboard
+Ingresamos a nextcloud desde nuestro navegador con el dominio configurado e ingresamos las credenciales del secrets
 
+![guia](/images/nextcloud-0.png)
 
+Ingresamos al panel de administración, seleccionamos el icono ubicado en la parte superior derecha > **Configuraciones de administración** > **Vista general** y verificamos que no haya errores
 
------------------------------------------------------
+![guia](/images/nextcloud-1.png)
 
-En primera instancia instalamos los certificados
+Ingresamos al panel de administración, seleccionamos el icono ubicado en la parte superior derecha > **Configuraciones de administración** > **Ajustes básicos** y seleccionamos **cron**.
+
+![guia](/images/nextcloud-2.png)
+
+Ejecutar cronjob
 ```
-kubectl apply -f certificados/
-```
-Posteriormente instalamos los manifiestos de ingress 
-```
-kubectl apply -f ingress/
-```
-Verificamos que ingress este ejecutandoce correctamente
-``` 
-kubectl get pods
-```
-```
-NAME                CLASS   HOSTS                       ADDRESS           PORTS     AGE
-collabora-ingress   nginx   collabora.local.test        192.168.1.100     80, 443   5d6h
-nextcloud-ingress   nginx   collabora.local.test        192.168.1.101     80, 443   5d6h
-Una vez revizado y edita los archivos procederemos a la ejecutar los manifiestos
+kubectl apply -f cron-nextcloud.yaml
 ```
 
-Ahora podemos instalar las aplicaciones mediante los mifiestos
+Verificar los cronjobs
 ```
-kubectl apply -f apps/
+kubectl get cronjobs -n nextcloud
 ```
-Verificamos que estan ejecutandoce correctamente y Esperemos a que los pods esten en estado Runnig para poder continuar
-``` 
-kubectl get pods
 ```
-``` 
-NAME                                               READY   STATUS              RESTARTS   AGE
-clamav-8667bfc7fc-6ds25                            0/1     ContainerCreating   0          6s
-collabora-745b5cdc-nmr8d                           0/1     ContainerCreating   0          6s
-mariadb-c6d7854df-m7kv5                            0/1     ContainerCreating   0          5s
-nextcloud-5cc9dc666f-n9pm2                         0/1     Init:0/2            0          5s
-nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running             0          3m
-redis-686556cf6d-rddd5                             0/1     ContainerCreating   0          5s
-```
-Ingresamos a nextcloud desde nuestro navegador con el dominio configurado y configuramos las credenciales de **Admnistrador**
-> [!IMPORTANT]
-> La contraseña usada debe ser robusta para mayor seguridad.
-
-![guia](/images/imagen-1.png)
-
-
-Instalamos las aplicaciones que usaremos
-
-![guia](/images/imagen-2.png)
-
-
-Una vez instalado, nos redireccionara al dashboard de Nextcloud
-
-![guia](/images/imagen-3.png)
-
-
-Ingresamos al panel de administracion, seleccionamos el icono ubicado en la parte superior derecha > Configuraciones de administracion > Vista general
-> [!NOTE]
-> Dentro podemos verificar los errores que presnta Nextcloud, los cuales seran corregidos por los manifiesto de mantenimiento
-
-![guia](/images/imagen-4.png)
-
-## Correccion de errores
-Ahora corregiremos la mayoria de errores que aparecen en Nextcloud
-> [!NOTE]
-> Puedes revisar los logs del pod en caso de algun error
-
-### Manteniento de base de datos 
-Este manifiesto establece una pequeña ventana de manteniento, en el cual:
-- Corrige las tablas de mariadb
-- Añade tablas faltantes (si es el caso)
-- Establece el manteniento automatico
-- Borra la cache de redis
-
-Para ello ejecutamos el manifiesto set-db.yaml
-``` 
-kubectl apply -f maintenance/set-db.yaml
-```
-
-### Establecer la region de predeterminada para teléfonos
-Este manifiesto añade la region para telefonos
-
-Para ello ejecutamos el manifiesto set-db.yaml
-``` 
-kubectl apply -f maintenance/set-phone.yaml
-```
-
-### Establecer la configuracion de Proxy
-Este manifiesto añade la configuracion necesaria para que Nextcloud funione correctamente con un proxy (ingress no es un proxy pero actua como tal)
-``` 
-kubectl apply -f maintenance/set-proxy.yaml
-```
-
-Aplicado la primara parte de los manifiestos de correccion, refrescamos la pagina y verificamos nuevamente los errores
-
-![guia](/images/imagen-5.png)
-
-## Configuracion adicional de Nextcloud
-Las configuraciones que se va a aplicar es para optimizar el rendimiento y añadir una capa de seguridad mas
-
-### Configuracion de cron
-Configuraremos los trabajos en segundo plano, para ello aplicamos el manifiesto cron
-``` 
-kubectl apply -f maintenance/cron-nextcloud.yaml
-```
-
-Ingresamos al panel de administracion, seleccionamos el icono ubicado en la parte superior derecha > Configuraciones de administracion > Ajustes basicos y seleccionamos cron. 
-Ahora cada 5 minutos se ejecutara un job el cual ejecuta el archivo cron.php y podremos verlo en los pods para su monitoreo
-
-![guia](/images/imagen-7.png)
-``` 
-NAME                                               READY   STATUS      RESTARTS      AGE
-clamav-66d94fb94b-lj287                            1/1     Running     1             30m
-collabora-84ffc497f4-jmd4d                         1/1     Running     0             30m
-mariadb-b4b4c9949-m88cf                            1/1     Running     0             30m
-nextcloud-8767f454f-9zl7x                          1/1     Running     0             30m
-nextcloud-cron-29180975-fdvkr                      0/1     Completed   0             2m40s
-nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running     1             41m
-redis-6b468c499f-4jj7t                             1/1     Running     0             30m
+NAME             SCHEDULE       TIMEZONE   SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+nextcloud-cron   */5 * * * *    <none>     False     0        2m6s            6s
 ```
 
 ### Seguridad de dominio web
-Si tenemos publicado en internet nuestro servicio, aplicamos este manifiesto el cual añade una regla extra para que el servicio pase las pruebas de seguridad de nextcloud
-``` 
-kubectl apply -f maintenance/set-cookie.yaml
+Si tenemos publicado en internet nuestro servicio, comprobamos el nivel de seguridad en [scan.nextcloud.com](https://scan.nextcloud.com/)
+
+![guia](/images/nextcloud-3.png)
+
+## Clamav
+Instalar clamav
+```
+kubectl apply -f clamav.yaml
 ```
 
-Aplicado el manifiesto ingresamos a [scan.nextcloud.com](https://scan.nextcloud.com/) y comprobamos el nivel de seguridad
+Verificar los Pods
+```
+kubectl get pods -n nextcloud
+```
+```
+NAME                            READY   STATUS      RESTARTS   AGE
+clamav-59cc7b479f-mcnmd         1/1     Running     0          7m
+```
 
-![guia](/images/imagen-6.png)
-
-## Integracion de Collabora y ClamAV a Nextcloud
-Ahora realizaremos la integracion de clamav para el escaneo de los archivos y de collabora para el manejo de los documentos
-
-### ClamAV
 Para la instalacion de ClamAV seleccionamos el icono ubicado en la parte superior derecha > Aplicaciones > Seguridad e instalamos el aplicativo **Antifirus for files**
 
-![guia](/images/imagen-8.png)
+![guia](/images/clamav-0.png)
 
 Regresamos a Configuraciones de administracion y nos dirigimos a **seguridad**, hasta la parte inferior donde estara el apartado de **Antivirus para archivos** en la cual configuramos de esta manera
 
 - **modo:** Dominio de clamAV
 - **dominio:** clamav
 - **puerto:** 3310
+- **Longitud de flujo:** 104857600
 
-![guia](/images/imagen-9.png)
+![guia](/images/clamav-1.png)
 
 Ahora nos dirigimos a **Archivos** e intentamos subir un archivo eicar, para probar el correcto funcionamiento de clamAV
 
 > [!NOTE]
 > Puedes descargar los archivos eicar de prueba [aqui](https://www.eicar.org/download-anti-malware-testfile/)
 
-![guia](/images/imagen-10.png)
+![guia](/images/clamav-2.png)
 
-### Collabora
+## Collabora
+Instalar collabora
+```
+kubectl apply -f collabora.yaml
+```
+
+Verificar los Pods
+```
+kubectl get pods -n nextcloud
+```
+```
+NAME                            READY   STATUS      RESTARTS   AGE
+collabora-5998759c75-w7txg      1/1     Running     0          7m
+```
+
+Instalar ingress de collabora
+```
+kubectl apply -f ingress-collabora.yaml
+```
+
+Verificar los ingress
+```
+kubectl get ingress -n nextcloud
+```
+```
+NAME                CLASS   HOSTS                       ADDRESS        PORTS     AGE
+collabora-ingress   nginx   apu.pitvirtual.uni.edu.pe   192.168.1.201  80, 443   3m
+```
+
 Para la instalacion de Collabora seleccionamos el icono ubicado en la parte superior derecha > Aplicaciones > Oficina y texto e instalamos el aplicativo **Nextcloud Office**
 
-![guia](/images/imagen-11.png)
+![guia](/images/collabora-0.png)
 
 Regresamos a Configuraciones de administracion y nos dirigimos a **Nextcloud Office**, seleccionamos **Use su propio servidor** e ingresamos la url del dominio de Collabora
 
-![guia](/images/imagen-12.png)
+![guia](/images/collabora-1.png)
 
 Ahora nos dirigimos a **Archivos** e ingresamos a Documentes y abrimos el documento **Welcome to Nextcloud Hub.docx**
 
-![guia](/images/imagen-13.png)
+![guia](/images/collabora-2.png)
 
-![guia](/images/imagen-14.png)
+![guia](/images/collabora-3.png)
+
 
 
