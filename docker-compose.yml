@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  app:
+    image: 'jc21/nginx-proxy-manager:latest' # Imagen oficial de Nginx Proxy Manager
+    container_name: nginx-proxy-manager # Nombre opcional para el contenedor
+    restart: unless-stopped # Reinicia automáticamente a menos que lo detengas manualmente
+    ports:
+      - '80:80'   # Puerto HTTP público
+      - '443:443' # Puerto HTTPS público
+      - '81:81'   # Puerto para la interfaz de administración de Nginx Proxy Manager
+    volumes:
+      - ./data:/data         # Directorio para los datos de configuración de NPM
+      - ./letsencrypt:/etc/letsencrypt # Directorio para los certificados Let's Encrypt
+    environment:
+      INITIAL_ADMIN_EMAIL: example@email.com
+      INITIAL_ADMIN_PASSWORD: s0p0rt6
+  db:
+    image: 'jc21/mariadb-aria:latest' # Base de datos MariaDB (recomendada para NPM)
+    container_name: nginx-proxy-manager-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 'npm_root_password' # ¡CAMBIA ESTA CONTRASEÑA!
+      MYSQL_DATABASE: 'npm'
+      MYSQL_USER: 'npm'
+      MYSQL_PASSWORD: 'npm_password' # ¡CAMBIA ESTA CONTRASEÑA!
+    volumes:
+      - ./mysql:/var/lib/mysql # Directorio para los datos de la base de datos
