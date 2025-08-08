@@ -1,7 +1,7 @@
 # Nextcloud en kubernetes
 Integracion de nextcloud en la plataforma de kubernetes
 
-![guia](/images/imagen-0.png)
+![guia](/imagenes/diagrama.png)
 
 Antes de realizar la instalacion, verificar los archivos y modificar los valores a los que usara
 - :key: **secrets** Este manifiesto estan las contraseñas de las demas aplicaciones
