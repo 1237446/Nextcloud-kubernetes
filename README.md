@@ -62,7 +62,7 @@ speaker-wxdbl                 1/1     Running   0          2m
 ```
 En este caso usaremos Layer2 
 > [!WARNING]
-> Utilice sus propias direcciones IP cambiando el parámetro "addresses:" en el archivo metallb/ipaddresspool.yaml
+> Utilice sus propias direcciones IP cambiando el parámetro "addresses:" en el archivo layer2advertisement.yaml
 ```yaml
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
@@ -85,7 +85,7 @@ spec:
 
 Aplica el manifiesto
 ```
-kubectl apply -f ipaddresspool.yaml
+kubectl apply -f layer2advertisement.yaml
 ```
 
 ### :open_file_folder:NFS Provisioner
