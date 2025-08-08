@@ -1,0 +1,103 @@
+#-----------------------------------------------------------
+# Redis Sentinel
+#-----------------------------------------------------------
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: RedisSentinel
+metadata:
+  name: redis-sentinel
+  namespace: nextcloud
+spec:
+  clusterSize: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  podSecurityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+
+  redisSentinelConfig:
+    redisReplicationName: redis-replication
+    redisReplicationPassword:
+      secretKeyRef:
+        name: password-nextcloud
+        key: redis_password
+
+  kubernetesConfig:
+    image: quay.io/opstree/redis-sentinel:v7.0.15
+    imagePullPolicy: IfNotPresent
+
+    redisSecret:
+      name: password-nextcloud
+      key: redis_password
+
+    resources:
+      requests:
+        memory: "256Mi" 
+        cpu: "200m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - redis-sentinel
+          topologyKey: "kubernetes.io/hostname"
+
+---
+#-----------------------------------------------------------
+# Redis Replication
+#-----------------------------------------------------------
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: RedisReplication
+metadata:
+  name: redis-replication
+  namespace: nextcloud
+spec:
+  clusterSize: 3
+  kubernetesConfig:
+    image: quay.io/opstree/redis:v7.0.15
+    imagePullPolicy: IfNotPresent
+
+    redisSecret:
+      name: password-nextcloud
+      key: redis_password
+
+    resources:
+      requests:
+        cpu: "500m" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        memory: "512Mi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      limits:
+        cpu: "1" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        memory: "1Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: longhorn
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+  redisExporter:
+    enabled: false
+    image: quay.io/opstree/redis-exporter:v1.44.0
+    imagePullPolicy: Always
+
+  podSecurityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - redis-replication
+          topologyKey: "kubernetes.io/hostname"

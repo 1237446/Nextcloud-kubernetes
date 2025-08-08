@@ -1,0 +1,77 @@
+#-----------------------------------------------------------
+# MariaDB Galera Cluster
+#-----------------------------------------------------------
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+  namespace: nextcloud
+spec:
+  rootPasswordSecretKeyRef:
+    name: password-nextcloud
+    key: mariadb_root_password
+
+  storage:
+    size: 10Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+  replicas: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  
+  metrics:
+    enabled: false
+
+  galera:
+    enabled: true
+
+  service:
+    type: ClusterIP
+
+  primaryService:
+    type: ClusterIP
+
+  secondaryService:
+    type: ClusterIP
+
+  resources:
+    requests:
+      cpu: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 4Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    limits:
+      cpu: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 4Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+  # innodb_buffer_pool_size se recomienda que sea 80% de la RAM total del nodo
+  myCnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=3200MB
+    max_allowed_packet=1GB
+
+  updateStrategy:
+    type: ReplicasFirstPrimaryLast
+
+  nodeSelector:
+    kubernetes.io/arch: amd64  
+
+  affinity:
+    antiAffinityEnabled: true
+
+  podDisruptionBudget:
+    maxUnavailable: 66%
+
+  priorityClassName: system-node-critical
+
+  livenessProbe:
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+  readinessProbe:
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+  startupProbe:
+    failureThreshold: 85
+    periodSeconds: 5
+    timeoutSeconds: 5

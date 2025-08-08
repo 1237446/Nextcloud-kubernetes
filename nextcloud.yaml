@@ -1,0 +1,254 @@
+#-----------------------------------------------------------
+# PersistentVolumeClaim para Nextcloud
+#-----------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+  labels:
+    app: nextcloud
+spec:
+  storageClassName: longhorn
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+---
+#-----------------------------------------------------------
+# PersistentVolumeClaim para Nextcloud
+#-----------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nextcloud-data
+  namespace: nextcloud
+  labels:
+    app: nextcloud
+spec:
+  storageClassName: nfs-client
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+---
+#---------------------------------------------------------------------
+# Archivo de configuracion nextcloud.ini
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nextcloud-ini
+  namespace: nextcloud
+data:
+  nextcloud.ini: |
+    memory_limit = 512M
+    upload_max_filesize = 10G
+    post_max_size = 10G
+
+---
+#---------------------------------------------------------------------
+# Archivo de configuracion nextcloud.ini
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opcache-ini
+  namespace: nextcloud
+data:
+  opcache-recommended.ini: |
+    opcache.enable=1
+    opcache.interned_strings_buffer=64
+    opcache.max_accelerated_files=10000
+    opcache.memory_consumption=256
+    opcache.save_comments=1
+    opcache.revalidate_freq=60
+    opcache.jit=1255
+    opcache.jit_buffer_size=16M   
+
+---
+#-----------------------------------------------------------
+# Modo de publicacion de Nextcloud
+#-----------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+  labels:
+    app: nextcloud  
+spec:
+  type: ClusterIP
+  selector:
+    app: nextcloud
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+---
+#-----------------------------------------------------------
+# Nextcloud (Aplicación Principal)
+#-----------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+  labels:
+    app: nextcloud
+spec:
+  replicas: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  selector:
+    matchLabels:
+      app: nextcloud
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nextcloud
+    spec:
+      initContainers:
+        #-----------------------------------------------------------
+        # Verificacion de conexion a postgresql
+        #-----------------------------------------------------------
+      - name: wait-for-mariadb-cluster
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z mariadb-galera 3306; do echo waiting for mariadb; sleep 2; done;']
+        #-----------------------------------------------------------
+        # Verificacion de conexion a redis
+        #-----------------------------------------------------------
+      - name: wait-for-redis-cluster
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z redis-replication-master 6379; do echo waiting for redis; sleep 2; done;']
+      containers:
+      - name: nextcloud
+        image: nextcloud:stable-apache
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            memory: 4Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+          limits:
+            cpu: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            memory: 4Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        ports:
+          - containerPort: 80 
+        env:
+          - name: NEXTCLOUD_TRUSTED_DOMAINS
+            value: "apu.uni.edu.pe"
+          - name: NO_PROXY
+            value: "localhost,127.0.0.1,nextcloud,10.0.0.0/8,192.168.0.0/16,.svc,.cluster.local"
+          - name: NEXTCLOUD_OVERWRITEPROTOCOL
+            value: "https"
+          - name: NEXTCLOUD_OVERWRITEHOST
+            value: "apu.uni.edu.pe"
+          - name: NEXTCLOUD_OVERWRITECLIURL
+            value: "https://apu.uni.edu.pe"
+          - name: PHP_MAX_EXECUTION_TIME
+            value: "3600"
+          - name: PHP_MAX_INPUT_TIME
+            value: "3600"
+          - name: TZ
+            value: "America/Lima"
+          - name: PHP_TIMEZONE
+            value: "America/Lima"
+          #---------------------------------------------------------
+          # Credenciales de Nextcloud
+          #---------------------------------------------------------
+          - name: NEXTCLOUD_ADMIN_USER
+            valueFrom:
+              secretKeyRef:
+                name: password-nextcloud
+                key: nextcloud_admin_user
+          - name: NEXTCLOUD_ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: password-nextcloud
+                key: nextcloud_admin_password
+          #---------------------------------------------------------
+          # Conexion a mariadb
+          #---------------------------------------------------------
+          - name: MYSQL_HOST
+            value: "mariadb-galera"
+          - name: MYSQL_DATABASE
+            value: "nextcloud"
+          - name: MYSQL_USER 
+            value: "nextcloud"
+          - name: MYSQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: password-nextcloud
+                key: mariadb_user_password
+          #---------------------------------------------------------
+          # Conexion a redis
+          #---------------------------------------------------------
+          - name: REDIS_HOST
+            value: "redis-replication-master"
+          - name: REDIS_HOST_PORT
+            value: "6379"
+          - name: REDIS_HOST_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: password-nextcloud
+                key: redis_password
+        volumeMounts:
+          - name: nextcloud
+            mountPath: /var/www/html
+          - name: nextcloud-data
+            mountPath: /var/www/html/data
+          - name: nextcloud-ini
+            mountPath: /usr/local/etc/php/conf.d/nextcloud.ini
+            subPath: nextcloud.ini
+          - name: opcache-ini
+            mountPath: /usr/local/etc/php/conf.d/opcache-recommended.ini
+            subPath: opcache-recommended.ini
+      volumes:
+        - name: nextcloud
+          persistentVolumeClaim:
+            claimName: nextcloud
+        - name: nextcloud-data
+          persistentVolumeClaim:
+            claimName: nextcloud-data
+        - name: nextcloud-ini
+          configMap:
+            name: nextcloud-ini
+        - name: opcache-ini
+          configMap:
+            name: opcache-ini
+
+---
+#---------------------------------------------------------------------
+# Escalado Horizontal de Nextcloud
+#---------------------------------------------------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-nextcloud
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nextcloud
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

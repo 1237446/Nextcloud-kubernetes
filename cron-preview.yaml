@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: preview-cron
+  namespace: nextcloud
+  labels:
+    app: nextcloud
+spec:
+  schedule: "*/10 * * * *" # Ejecutar cada 10 minutos
+  successfulJobsHistoryLimit: 1 # Mantener solo 1 Job exitoso
+  failedJobsHistoryLimit: 1 # Mantener solo 1 Job fallido   
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            fsGroup: 33
+            runAsNonRoot: true 
+            runAsUser: 33
+            runAsGroup: 33
+          containers:
+          - name: nextcloud-cron
+            image: nextcloud:stable-apache
+            imagePullPolicy: IfNotPresent
+            command: ["./occ", "preview:generate-all"]
+            volumeMounts:
+              - name: nextcloud
+                mountPath: /var/www/html
+              - name: nextcloud-data
+                mountPath: /var/www/html/data
+              - name: nextcloud-ini
+                mountPath: /usr/local/etc/php/conf.d/nextcloud.ini
+                subPath: nextcloud.ini
+              - name: opcache-ini
+                mountPath: /usr/local/etc/php/conf.d/opcache-recommended.ini
+                subPath: opcache-recommended.ini
+            envFrom:
+            - secretRef:
+                name: password-nextcloud
+          restartPolicy: OnFailure
+          volumes:
+            - name: nextcloud
+              persistentVolumeClaim:
+                claimName: nextcloud
+            - name: nextcloud-data
+              persistentVolumeClaim:
+                claimName: nextcloud-data
+            - name: nextcloud-ini
+              configMap:
+                name: nextcloud-ini
+            - name: opcache-ini
+              configMap:
+                name: opcache-ini

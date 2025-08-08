@@ -1,0 +1,142 @@
+#---------------------------------------------------------------------
+# PersistentVolumeClaim para datos de Collabora
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: collabora-pvc-data
+  namespace: nextcloud
+  labels:
+    app: collabora
+spec:
+  storageClassName: longhorn # <--- ¡DESCOMENTA ESO SI USAS ALMACENAMIENTO NFS!
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce 
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+#---------------------------------------------------------------------
+# Modo de publicacion de Collabora
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: collabora
+  namespace: nextcloud
+  labels:
+    app: collabora
+spec:
+  selector:
+    app: collabora
+  ports:
+    - port: 9980
+      targetPort: 9980
+      protocol: TCP
+  type: ClusterIP 
+
+---
+#---------------------------------------------------------------------
+# Collabora Online (CODE)
+#---------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: collabora
+  namespace: nextcloud
+  labels:
+    app: collabora
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: collabora
+  template:
+    metadata:
+      labels:
+        app: collabora
+    spec:
+      containers:
+        - name: collabora-code
+          image: collabora/code:latest
+          ports:
+            - containerPort: 9980
+              name: collabora
+          env:
+            - name: dictionaries
+              value: "es_ES en_US"
+            - name: timezone
+              value: "America/Lima"
+            - name: extra_params
+              value: "--o:ssl.enable=false --o:ssl.termination=true --o:host_url=https://apu.uni.edu.pe/" # <--- ¡CAMBIA ESTO A TU DOMINIO DE NEXTCLOUD!
+            - name: username
+              value: "admin" # <--- ¡USUARIO DE ADMINISTRACION!
+            - name: password
+              valueFrom:
+                secretKeyRef:
+                  name: password-nextcloud
+                  key: collabora_admin_password # <--- ¡ASEGURATE QUE SEA TU SECRET!
+            - name: domain
+              value: "apu.pitvirtual.uni.edu.pe"  # <--- ¡CAMBIA ESTO A TU DOMINIO DE COLLABORA!
+            - name: TZ
+              value: "America/Lima"
+          #-----------------------------------------------------------
+          # limites de recursos
+          #-----------------------------------------------------------             
+          # resources:
+          #   requests:
+          #     cpu: "1"
+          #     memory: "2Gi"
+          #   limits:
+          #     cpu: "1"
+          #     memory: "2Gi"
+          securityContext:
+            capabilities: { add: ["MKNOD"] }
+          readinessProbe:
+            httpGet: { path: /hosting/discovery, port: 9980 }
+            initialDelaySeconds: 300
+            periodSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            httpGet: { path: /hosting/discovery, port: 9980 }
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            - name: collabora-data
+              mountPath: /var/lib/lool
+      volumes:
+        - name: collabora-data
+          persistentVolumeClaim:
+            claimName: collabora-pvc-data
+
+---
+#---------------------------------------------------------------------
+# Escalado Horizontal de Collabora
+#---------------------------------------------------------------------
+# apiVersion: autoscaling/v2
+# kind: HorizontalPodAutoscaler
+# metadata:
+#   name: hpa-collabora
+# spec:
+#   scaleTargetRef:
+#     apiVersion: apps/v1
+#     kind: Deployment
+#     name: collabora
+#   minReplicas: 1
+#   maxReplicas: 3
+#   metrics:
+#   - type: Resource
+#     resource:
+#       name: cpu
+#       target:
+#         type: Utilization
+#         averageUtilization: 50
+#   - type: Resource
+#     resource:
+#       name: memory
+#       target:
+#         type: Utilization
+#         averageUtilization: 80
