@@ -506,17 +506,17 @@ nextcloud-db-repair-job   Complete   1/1           69s        2m23s
 ### Nginx Proxy Manager
 Ingresamos y creamos el certificado SSL
 
-![guia](/images/proxy-3.png)
+![guia](/imagenes/proxy-3.png)
 
 Creamos proxy host
 > [!NOTE]
 > La dirección ip es la de ingress​
 
-![guia](/images/proxy-0.png)
+![guia](/imagenes/proxy-0.png)
 
-![guia](/images/proxy-1.png)
+![guia](/imagenes/proxy-1.png)
 
-![guia](/images/proxy-2.png)
+![guia](/imagenes/proxy-2.png)
 ```
 proxy_set_header X-Real-IP $remote_addr;
 12proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -531,15 +531,15 @@ proxy_hide_header Upgrade;
 ## Nextcloud dashboard
 Ingresamos a nextcloud desde nuestro navegador con el dominio configurado e ingresamos las credenciales del secrets
 
-![guia](/images/nextcloud-0.png)
+![guia](/imagenes/nextcloud-0.png)
 
 Ingresamos al panel de administración, seleccionamos el icono ubicado en la parte superior derecha > **Configuraciones de administración** > **Vista general** y verificamos que no haya errores
 
-![guia](/images/nextcloud-1.png)
+![guia](/imagenes/nextcloud-1.png)
 
 Ingresamos al panel de administración, seleccionamos el icono ubicado en la parte superior derecha > **Configuraciones de administración** > **Ajustes básicos** y seleccionamos **cron**.
 
-![guia](/images/nextcloud-2.png)
+![guia](/imagenes/nextcloud-2.png)
 
 Ejecutar cronjob
 ```
@@ -558,7 +558,7 @@ nextcloud-cron   */5 * * * *    <none>     False     0        2m6s            6s
 ### Seguridad de dominio web
 Si tenemos publicado en internet nuestro servicio, comprobamos el nivel de seguridad en [scan.nextcloud.com](https://scan.nextcloud.com/)
 
-![guia](/images/nextcloud-3.png)
+![guia](/imagenes/nextcloud-3.png)
 
 ## Clamav
 Instalar clamav
@@ -577,7 +577,7 @@ clamav-59cc7b479f-mcnmd         1/1     Running     0          7m
 
 Para la instalacion de ClamAV seleccionamos el icono ubicado en la parte superior derecha > Aplicaciones > Seguridad e instalamos el aplicativo **Antifirus for files**
 
-![guia](/images/clamav-0.png)
+![guia](/imagenes/clamav-0.png)
 
 Regresamos a Configuraciones de administracion y nos dirigimos a **seguridad**, hasta la parte inferior donde estara el apartado de **Antivirus para archivos** en la cual configuramos de esta manera
 
@@ -586,14 +586,14 @@ Regresamos a Configuraciones de administracion y nos dirigimos a **seguridad**, 
 - **puerto:** 3310
 - **Longitud de flujo:** 104857600
 
-![guia](/images/clamav-1.png)
+![guia](/imagenes/clamav-1.png)
 
 Ahora nos dirigimos a **Archivos** e intentamos subir un archivo eicar, para probar el correcto funcionamiento de clamAV
 
 > [!NOTE]
 > Puedes descargar los archivos eicar de prueba [aqui](https://www.eicar.org/download-anti-malware-testfile/)
 
-![guia](/images/clamav-2.png)
+![guia](/imagenes/clamav-2.png)
 
 ## Collabora
 Instalar collabora
@@ -626,17 +626,17 @@ collabora-ingress   nginx   apu.pitvirtual.uni.edu.pe   192.168.1.201  80, 443  
 
 Para la instalacion de Collabora seleccionamos el icono ubicado en la parte superior derecha > Aplicaciones > Oficina y texto e instalamos el aplicativo **Nextcloud Office**
 
-![guia](/images/collabora-0.png)
+![guia](/imagenes/collabora-0.png)
 
 Regresamos a Configuraciones de administracion y nos dirigimos a **Nextcloud Office**, seleccionamos **Use su propio servidor** e ingresamos la url del dominio de Collabora
 
-![guia](/images/collabora-1.png)
+![guia](/imagenes/collabora-1.png)
 
 Ahora nos dirigimos a **Archivos** e ingresamos a Documentes y abrimos el documento **Welcome to Nextcloud Hub.docx**
 
-![guia](/images/collabora-2.png)
+![guia](/imagenes/collabora-2.png)
 
-![guia](/images/collabora-3.png)
+![guia](/imagenes/collabora-3.png)
 
 
 
