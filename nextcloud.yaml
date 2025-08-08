@@ -232,6 +232,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: hpa-nextcloud
+  namespace: nextcloud
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -251,4 +252,4 @@ spec:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 80
+        averageUtilization: 50
