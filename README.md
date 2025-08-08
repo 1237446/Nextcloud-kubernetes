@@ -638,5 +638,74 @@ Ahora nos dirigimos a **Archivos** e ingresamos a Documentes y abrimos el docume
 
 ![guia](/imagenes/collabora-3.png)
 
+## Outh2
+Para la instalación seleccionamos el icono ubicado en la parte superior derecha > **Aplicaciones** > **Multimedia** e instalamos **Preview Generator**
 
+---
 
+Ingresamos a [la Consola de Desarrolladores de Google](https://console.developers.google.com/) crea un nuevo proyecto
+
+---
+
+En el menú lateral, ve a **APIs y servicios** > **Credenciales**
+
+---
+
+Haz clic en **Configurar pantalla de consentimiento de OAuth**
+
+---
+
+Ingresa un **Nombre de la aplicación** relevante (por ejemplo, *Nextcloud Login*).
+
+---
+
+Selecciona el tipo de usuario (Externo o Interno).
+
+---
+
+Ingresa una cuenta de información.
+
+---
+
+Crea el proyecto
+
+---
+
+De vuelta en **Credenciales**, haz clic en **Crear credenciales** > **ID de cliente de OAuth**.
+
+---
+
+Selecciona **Aplicación web** como **Tipo de aplicación** e ingresa un nombre para el cliente (ej.
+*Nextcloud Google OAuth*).
+
+---
+
+En **Orígenes de JavaScript autorizados**, agrega la URL base de tu Nextcloud (ej. *https://tudominio.com*).
+En **URIs de redireccionamiento autorizados**, agrega la siguiente URL, reemplazando *tudominio.com* con la URL de tu Nextcloud: **https://tudominio.com/apps/sociallogin/oauth/google**
+Haz clic en **Crear**.
+
+---
+
+> [!IMPORTANT]
+> Se te proporcionará un ID de cliente y un Secreto de cliente. Anótalos, los necesitarás en el siguiente paso.
+
+> [!NOTE]
+> en caso de no anotarlo lo puedes hayar **APIS y servicios** > **Credenciales**
+
+En Nextcloud ingresamos al panel de administración, seleccionamos el icono ubicado en la parte superior derecha > **Configuraciones de administración** > **Social login**.
+
+---
+
+Desplázate hacia abajo hasta la sección de "Google".
+Ingresa el ID de aplicación (App id) y el Secreto (Secret) que obtuviste de la Consola de Desarrolladores de Google.
+Selecciona "Grupo predeterminado" (Default group) y selecciona Ninguno.
+Haz clic en "Guardar"
+
+---
+
+Para probar el inicio de sesión abre una nueva ventana de navegador (o una ventana de incógnito/privada).
+Ve a la URL de inicio de sesión de tu Nextcloud.
+Deberías ver un botón para iniciar sesión con Google debajo del formulario de inicio de sesión normal
+de Nextcloud.
+
+---
