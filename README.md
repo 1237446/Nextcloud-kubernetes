@@ -504,6 +504,9 @@ nextcloud-db-repair-job   Complete   1/1           69s        2m23s
 ```
 
 ### Nginx Proxy Manager
+> [!TIP]
+> Si no tienes instalado NPM puedes usar el dockerfile de este repositorio
+​
 Ingresamos y creamos el certificado SSL
 
 ![guia](/imagenes/proxy-3.png)
