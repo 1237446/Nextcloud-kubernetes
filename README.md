@@ -522,7 +522,7 @@ Creamos proxy host
 ![guia](/imagenes/proxy-2.png)
 ```
 proxy_set_header X-Real-IP $remote_addr;
-12proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Host $host;
 proxy_set_header Host $host;
 proxy_set_header X-Forwarded-Proto $scheme;
