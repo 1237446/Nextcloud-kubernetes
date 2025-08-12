@@ -7,6 +7,9 @@ metadata:
   name: mariadb-galera
   namespace: nextcloud
 spec:
+  image: docker-registry1.mariadb.com/library/mariadb:10.11
+  imagePullPolicy: IfNotPresent
+
   rootPasswordSecretKeyRef:
     name: password-nextcloud
     key: mariadb_root_password
@@ -74,4 +77,5 @@ spec:
   startupProbe:
     failureThreshold: 85
     periodSeconds: 5
+
     timeoutSeconds: 5
