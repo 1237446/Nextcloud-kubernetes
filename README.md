@@ -391,96 +391,96 @@ root@nextcloud-5dff54784f-pqmqn:/var/www/html# apt update
 root@nextcloud-5dff54784f-pqmqn:/var/www/html# apt install nano
 ```
 
-Editamos el archivo config.php y añadimos lo que está comentado
+Editamos el archivo config.php y añadimos lo que no está comentado
 ```
 root@nextcloud-5dff54784f-pqmqn:/var/www/html# nano config/config.php
 ```
 ```php
-<?php
-$CONFIG = array (
-  'htaccess.RewriteBase' => '/',
-  'memcache.local' => '\\OC\\Memcache\\APCu',
-  'apps_paths' => 
+//<?php
+//$CONFIG = array (
+//   'htaccess.RewriteBase' => '/',
+//   'memcache.local' => '\\OC\\Memcache\\APCu',
+//   'apps_paths' => 
+//   array (
+//     0 => 
+//     array (
+//       'path' => '/var/www/html/apps',
+//       'url' => '/apps',
+//       'writable' => false,
+//     ),
+//     1 => 
+//     array (
+//       'path' => '/var/www/html/custom_apps',
+//       'url' => '/custom_apps',
+//       'writable' => true,
+//     ),
+//   ),
+//   'memcache.distributed' => '\\OC\\Memcache\\Redis',
+//   'memcache.locking' => '\\OC\\Memcache\\Redis',
+  'filelocking.enabled' => true,
+//   'redis' => 
+//   array (
+//     'host' => 'redis-replication-master',
+//     'password' => 'redis',
+//     'port' => 6379,
+//   ),
+//   'upgrade.disable-web' => true,
+//   'passwordsalt' => 'mFYaed0z3v4WOambO7lQS1fFPAoh4w',
+//   'secret' => 'yG+NuLVJRs1fOKyMeaCIQuJFZL3YEKHHVTglv+3bsu2gD5RM',
+  'trusted_domains' => 
   array (
-    0 => 
-    array (
-      'path' => '/var/www/html/apps',
-      'url' => '/apps',
-      'writable' => false,
-    ),
-    1 => 
-    array (
-      'path' => '/var/www/html/custom_apps',
-      'url' => '/custom_apps',
-      'writable' => true,
-    ),
+   0 => 'localhost',
+   1 => 'apu.uni.edu.pe',
   ),
-  'memcache.distributed' => '\\OC\\Memcache\\Redis',
-  'memcache.locking' => '\\OC\\Memcache\\Redis',
-  //'filelocking.enabled' => true,
-  'redis' => 
+//   'datadirectory' => '/var/www/html/data',
+//   'dbtype' => 'mysql',
+//   'version' => '31.0.7.1',
+  'overwrite.cli.url' => 'http://apu.uni.edu.pe',
+  'overwritehost' => 'apu.uni.edu.pe',
+  'overwriteprotocol' => 'https',
+  'trusted_proxies' => 
   array (
-    'host' => 'redis-replication-master',
-    'password' => 'redis',
-    'port' => 6379,
+   0 => '10.0.0.0/8',
+   1 => '192.168.1.0/24',
   ),
-  'upgrade.disable-web' => true,
-  'passwordsalt' => 'mFYaed0z3v4WOambO7lQS1fFPAoh4w',
-  'secret' => 'yG+NuLVJRs1fOKyMeaCIQuJFZL3YEKHHVTglv+3bsu2gD5RM',
-  //'trusted_domains' => 
-  //array (
-  //  0 => 'localhost',
-  //  1 => 'apu.uni.edu.pe',
-  //),
-  'datadirectory' => '/var/www/html/data',
-  'dbtype' => 'mysql',
-  'version' => '31.0.7.1',
-  //'overwrite.cli.url' => 'http://apu.uni.edu.pe',
-  //'overwritehost' => 'apu.uni.edu.pe',
-  //'overwriteprotocol' => 'https',
-  //'trusted_proxies' => 
-  //array (
-  //  0 => '10.0.0.0/8',
-  //  1 => '192.168.1.0/24',
-  //),
-  //'forwarded_for_headers' => 
-  //array (
-  //  0 => 'HTTP_X_FORWARDED_FOR',
-  //  1 => 'HTTP_X_FORWARDED',
-  //  2 => 'HTTP_X_FORWARDED_PROTO',
-  //),
-  //'remote_address_header' => 'HTTP_X_REAL_IP',
-  'dbname' => 'nextcloud',
-  'dbhost' => 'mariadb-galera',
-  'dbport' => '',
-  'dbtableprefix' => 'oc_',
-  'mysql.utf8mb4' => true,
-  'dbuser' => 'nextcloud',
-  'dbpassword' => 'redis',
-  //'asset-pipeline.enabled' => true,
-  //'asset-pipeline.minify' => true,
-  //'asset-pipeline.combine' => true,
-  //'has_internet_connection' => true,
-  //'check_for_working_htaccess' => true,
-  //'default_phone_region' => 'PE',
-  //'cookie_same_site' => 'Lax',
-  'installed' => true,
-  'instanceid' => 'oc3m9a2x0tcn',
-  //'enable_previews' => true,
-  //'enabledPreviewProviders' => 
-  //array (
-  //  0 => 'OC\\Preview\\PNG',
-  //  1 => 'OC\\Preview\\JPEG',
-  //  2 => 'OC\\Preview\\GIF',
-  //  3 => 'OC\\Preview\\BMP',
-  //  4 => 'OC\\Preview\\XBitmap',
-  //  5 => 'OC\\Preview\\MP3',
-  //  6 => 'OC\\Preview\\TXT',
-  //  7 => 'OC\\Preview\\MarkDown',
-  //  8 => 'OC\\Preview\\SVG',
-  //  9 => 'OC\\Preview\\Image',
-  //  10 => 'OC\\Preview\\TIFF',
-  //  11 => 'OC\\Preview\\HEIC',
+  'forwarded_for_headers' => 
+  array (
+   0 => 'HTTP_X_FORWARDED_FOR',
+   1 => 'HTTP_X_FORWARDED',
+   2 => 'HTTP_X_FORWARDED_PROTO',
+  ),
+  'remote_address_header' => 'HTTP_X_REAL_IP',
+//   'dbname' => 'nextcloud',
+//   'dbhost' => 'mariadb-galera',
+//   'dbport' => '',
+//   'dbtableprefix' => 'oc_',
+//   'mysql.utf8mb4' => true,
+//   'dbuser' => 'nextcloud',
+//   'dbpassword' => 'redis',
+  'asset-pipeline.enabled' => true,
+  'asset-pipeline.minify' => true,
+  'asset-pipeline.combine' => true,
+  'has_internet_connection' => true,
+  'check_for_working_htaccess' => true,
+  'default_phone_region' => 'PE',
+  'cookie_same_site' => 'Lax',
+//   'installed' => true,
+//   'instanceid' => 'oc3m9a2x0tcn',
+  'enable_previews' => true,
+  'enabledPreviewProviders' => 
+  array (
+   0 => 'OC\\Preview\\PNG',
+   1 => 'OC\\Preview\\JPEG',
+   2 => 'OC\\Preview\\GIF',
+   3 => 'OC\\Preview\\BMP',
+   4 => 'OC\\Preview\\XBitmap',
+   5 => 'OC\\Preview\\MP3',
+   6 => 'OC\\Preview\\TXT',
+   7 => 'OC\\Preview\\MarkDown',
+   8 => 'OC\\Preview\\SVG',
+   9 => 'OC\\Preview\\Image',
+   10 => 'OC\\Preview\\TIFF',
+   11 => 'OC\\Preview\\HEIC',
   ),
 );
 ```
