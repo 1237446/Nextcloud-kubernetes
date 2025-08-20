@@ -482,7 +482,7 @@ root@nextcloud-5dff54784f-pqmqn:/var/www/html# nano config/config.php
    10 => 'OC\\Preview\\TIFF',
    11 => 'OC\\Preview\\HEIC',
   ),
-);
+//);
 ```
 
 Ejecutar job de correccion
