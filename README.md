@@ -15,10 +15,10 @@ Antes de realizar la instalacion, verificar los archivos y modificar los valores
 
 ## Requisitos previos
 > [!TIP]
-> Si no tienes instalado Kuberntes puedes usar esta [guia](https://nginxproxymanager.com/guide/)
+> Si no tienes instalado Kubernetes puedes usar mi [guia](https://github.com/1237446/Instalacion-de-Kubernetes.)
 
 > [!NOTE]
-> El server de NPM debes intarlo en otra instancia fuera de kubernetes. Puedes instalarlo siguiendo esta [guia](https://pabpereza.dev/docs/cursos/kubernetes/instalacion_de_kubernetes_cluster_completo_ubuntu_server_con_kubeadm)
+> El server de NPM debes intarlo en otra instancia fuera de kubernetes. Puedes instalarlo siguiendo esta [guia](https://nginxproxymanager.com/guide/)
 
 ### :bookmark:Ingress Controller
 Agrega el repositorio de Helm
