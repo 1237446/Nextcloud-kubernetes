@@ -18,7 +18,7 @@ Antes de realizar la instalacion, verificar los archivos y modificar los valores
 > Si no tienes instalado Kubernetes puedes usar mi [guia](https://github.com/1237446/Instalacion-de-Kubernetes.)
 
 > [!NOTE]
-> El server de NPM debes intarlo en otra instancia fuera de kubernetes. Puedes instalarlo siguiendo esta [guia](https://nginxproxymanager.com/guide/)
+> El server de NPM debes intarlo en otra instancia fuera de kubernetes. Puedes instalarlo siguiendo esta [guia](https://nginxproxymanager.com/guide/), y mi docker-compose
 
 ### :bookmark:Ingress Controller
 Agrega el repositorio de Helm
