@@ -15,15 +15,41 @@ spec:
     key: mariadb_root_password
 
   storage:
-    size: 10Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    size: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    storageClassName: longhorn-db
+    resizeInUseVolumes: true
+    waitForVolumeResize: true
+    volumeClaimTemplate:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      storageClassName: longhorn-db
 
   replicas: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  replicasAllowEvenNumber: false
   
   metrics:
-    enabled: false
+    enabled: true
 
   galera:
     enabled: true
+    primary:
+      podIndex: 0
+      automaticFailover: true
+    recovery:
+      enabled: true
+      minClusterSize: 2
+    config:
+      reuseStorageVolume: false
+      volumeClaimTemplate:
+        resources:
+          requests:
+            storage: 300Mi
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: longhorn-db
 
   service:
     type: ClusterIP
@@ -36,10 +62,10 @@ spec:
 
   resources:
     requests:
-      cpu: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      cpu: 2 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
       memory: 4Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
     limits:
-      cpu: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      cpu: 2 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
       memory: 4Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   # innodb_buffer_pool_size se recomienda que sea 80% de la RAM total del nodo
@@ -59,8 +85,8 @@ spec:
     innodb_flush_method=O_DIRECT
     innodb_file_per_table=1
     innodb_log_buffer_size=64M
-    innodb_read_io_threads=1
-    innodb_write_io_threads=1
+    innodb_read_io_threads=4
+    innodb_write_io_threads=4
     wsrep_retry_autocommit=2
 
   env:
@@ -69,6 +95,7 @@ spec:
 
   updateStrategy:
     type: ReplicasFirstPrimaryLast
+    autoUpdateDataPlane: true
 
   nodeSelector:
     kubernetes.io/arch: amd64  
@@ -77,7 +104,7 @@ spec:
     antiAffinityEnabled: true
 
   podDisruptionBudget:
-    maxUnavailable: 66%
+    maxUnavailable: 33%
 
   priorityClassName: system-node-critical
 
@@ -92,6 +119,6 @@ spec:
   startupProbe:
     failureThreshold: 85
     periodSeconds: 5
-
     timeoutSeconds: 5
+
 
