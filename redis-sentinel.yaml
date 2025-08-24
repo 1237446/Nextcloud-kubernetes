@@ -1,50 +1,24 @@
 #-----------------------------------------------------------
-# Redis Sentinel
+# Redis Config
 #-----------------------------------------------------------
-apiVersion: redis.redis.opstreelabs.in/v1beta2
-kind: RedisSentinel
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: redis-sentinel
+  name: redis-external-config
   namespace: nextcloud
-spec:
-  clusterSize: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-  podSecurityContext:
-    runAsUser: 1000
-    fsGroup: 1000
-
-  redisSentinelConfig:
-    redisReplicationName: redis-replication
-    redisReplicationPassword:
-      secretKeyRef:
-        name: password-nextcloud
-        key: redis_password
-
-  kubernetesConfig:
-    image: quay.io/opstree/redis-sentinel:v7.0.15
-    imagePullPolicy: IfNotPresent
-
-    redisSecret:
-      name: password-nextcloud
-      key: redis_password
-
-    resources:
-      requests:
-        memory: "256Mi" 
-        cpu: "200m"
-      limits:
-        memory: "512Mi"
-        cpu: "500m"
-  
-  affinity:
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchExpressions:
-              - key: app
-                operator: In
-                values:
-                  - redis-sentinel
-          topologyKey: "kubernetes.io/hostname"
+data:
+  # maxmemory se recomienda que sea 1GB menos de la RAM total del nodo
+  redis-additional.conf: |
+    tcp-keepalive 300
+    maxmemory 3072mb
+    maxmemory-policy allkeys-lru
+    save ""
+    appendonly no
+    protected-mode yes
+    slowlog-max-len 256
+    slowlog-log-slower-than 10000
+    stream-node-max-bytes 4096
+    databases 1
 
 ---
 #-----------------------------------------------------------
@@ -57,6 +31,8 @@ metadata:
   namespace: nextcloud
 spec:
   clusterSize: 3
+  redisConfig:
+    additionalRedisConfig: redis-external-config
   kubernetesConfig:
     image: quay.io/opstree/redis:v7.0.15
     imagePullPolicy: IfNotPresent
