@@ -30,7 +30,6 @@ spec:
   passwordSecretKeyRef:
     name: password-nextcloud
     key: mariadb_user_password
-  maxUserConnections: 50
   host: "%"
   cleanupPolicy: Delete
   requeueInterval: 10h
