@@ -1,0 +1,41 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-pvc
+  namespace: nextcloud
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+  schedule:
+    cron: "0 3 * * *" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    suspend: false
+  timeZone: "UTC"
+  compression: gzip
+  inheritMetadata:
+    annotations:
+      database.myorg.io: mariadb
+  podMetadata:
+    labels:
+      sidecar.istio.io/inject: "false"
+  serviceAccountName: backup
+  storage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 300Mi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: longhorn # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  args:
+    - --single-transaction
+    - --all-databases
+    - --verbose
+  resources:
+    requests:
+      cpu: 100m # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 128Mi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    limits:
+      cpu: 300m # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 512Mi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  affinity:
+    antiAffinityEnabled: false
