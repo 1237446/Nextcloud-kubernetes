@@ -1,5 +1,5 @@
 #-----------------------------------------------------------
-# PersistentVolumeClaim para Nextcloud
+# PersistentVolumeClaim para Nextcloud (apps)
 #-----------------------------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -9,17 +9,17 @@ metadata:
   labels:
     app: nextcloud
 spec:
-  storageClassName: longhorn
+  storageClassName: longhorn # <--- ¡CAMBIA ESTO A TU NECESIDAD!
   volumeMode: Filesystem
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      storage: 10Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
 ---
 #-----------------------------------------------------------
-# PersistentVolumeClaim para Nextcloud
+# PersistentVolumeClaim para Nextcloud (data)
 #-----------------------------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -29,13 +29,13 @@ metadata:
   labels:
     app: nextcloud
 spec:
-  storageClassName: nfs-client
+  storageClassName: nfs-client # <--- ¡CAMBIA ESTO A TU NECESIDAD!
   volumeMode: Filesystem
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 50Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      storage: 300Ti # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
 ---
 #---------------------------------------------------------------------
@@ -48,9 +48,13 @@ metadata:
   namespace: nextcloud
 data:
   nextcloud.ini: |
-    memory_limit = 512M
-    upload_max_filesize = 10G
-    post_max_size = 10G
+    memory_limit = 1024M
+    upload_max_filesize = 30G
+    post_max_size = 30G
+    max_execution_time = 3600
+    max_input_time = 3600
+    output_buffering = Off
+    date.timezone = America/Lima
 
 ---
 #---------------------------------------------------------------------
@@ -65,12 +69,47 @@ data:
   opcache-recommended.ini: |
     opcache.enable=1
     opcache.interned_strings_buffer=64
-    opcache.max_accelerated_files=10000
+    opcache.max_accelerated_files=20000
     opcache.memory_consumption=256
     opcache.save_comments=1
     opcache.revalidate_freq=60
     opcache.jit=1255
-    opcache.jit_buffer_size=16M   
+    opcache.jit_buffer_size=32M
+    opcache.validate_timestamps=1
+    opcache.fast_shutdown=1
+    opcache.enable_cli=1
+
+---
+#---------------------------------------------------------------------
+# Archivo de configuracion php-fpm
+#---------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nextcloud-fpm-config
+  namespace: nextcloud
+data:
+  www.conf: |
+    [www]
+    user = www-data
+    group = www-data
+    listen = 127.0.0.1:9000
+    pm = dynamic
+    pm.max_children = 70
+    pm.start_servers = 14
+    pm.min_spare_servers = 10
+    pm.max_spare_servers = 28
+    pm.max_requests = 500
+    slowlog = /var/log/php-fpm/www-slow.log
+    request_slowlog_timeout = 30s
+    request_terminate_timeout = 300s
+    rlimit_files = 1024
+    catch_workers_output = yes
+    clear_env = no
+    security.limit_extensions = .php .php3 .php4 .php5 .phtml
+    php_admin_value = 512M
+    php_admin_value = /var/log/php-fpm/www-error.log
+    php_admin_flag = on
 
 ---
 #-----------------------------------------------------------
@@ -134,24 +173,22 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            cpu: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-            memory: 4Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            cpu: "2" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            memory: "4Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
           limits:
-            cpu: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-            memory: 4Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            cpu: "4" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            memory: "6Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
         ports:
-          - containerPort: 80 
+          - containerPort: 80
         env:
-          - name: NEXTCLOUD_TRUSTED_DOMAINS
-            value: "apu.uni.edu.pe"
-          - name: NO_PROXY
-            value: "localhost,127.0.0.1,nextcloud,10.0.0.0/8,192.168.0.0/16,.svc,.cluster.local"
-          - name: NEXTCLOUD_OVERWRITEPROTOCOL
+          - name: TRUSTED_DOMAINS
+            value: "domain.test.com" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+          - name: OVERWRITEPROTOCOL
             value: "https"
-          - name: NEXTCLOUD_OVERWRITEHOST
-            value: "apu.uni.edu.pe"
-          - name: NEXTCLOUD_OVERWRITECLIURL
-            value: "https://apu.uni.edu.pe"
+          - name: OVERWRITEHOST
+            value: "domain.test.com" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+          - name: OVERWRITECLIURL
+            value: "https://domain.test.com" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
           - name: PHP_MAX_EXECUTION_TIME
             value: "3600"
           - name: PHP_MAX_INPUT_TIME
@@ -204,12 +241,16 @@ spec:
             mountPath: /var/www/html
           - name: nextcloud-data
             mountPath: /var/www/html/data
+            subPath: data
           - name: nextcloud-ini
             mountPath: /usr/local/etc/php/conf.d/nextcloud.ini
             subPath: nextcloud.ini
           - name: opcache-ini
             mountPath: /usr/local/etc/php/conf.d/opcache-recommended.ini
             subPath: opcache-recommended.ini
+          - name: fpm-config
+            mountPath: /usr/local/etc/php-fpm.d/www.conf
+            subPath: www.conf
       volumes:
         - name: nextcloud
           persistentVolumeClaim:
@@ -223,6 +264,9 @@ spec:
         - name: opcache-ini
           configMap:
             name: opcache-ini
+        - name: fpm-config
+          configMap:
+            name: nextcloud-fpm-config
 
 ---
 #---------------------------------------------------------------------
@@ -238,18 +282,12 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: nextcloud
-  minReplicas: 1
-  maxReplicas: 3
+  minReplicas: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  maxReplicas: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
   metrics:
   - type: Resource
     resource:
-      name: cpu
+      name: cpu # <--- ¡CAMBIA ESTO A TU NECESIDAD!
       target:
         type: Utilization
-        averageUtilization: 50
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 50
+        averageUtilization: 50 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
