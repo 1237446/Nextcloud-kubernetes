@@ -1,0 +1,121 @@
+#-----------------------------------------------------------
+# MariaDB Galera Cluster
+#-----------------------------------------------------------
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+  namespace: nextcloud
+spec:
+  image: docker-registry1.mariadb.com/library/mariadb:10.11
+  imagePullPolicy: IfNotPresent
+
+  rootPasswordSecretKeyRef:
+    name: password-nextcloud
+    key: mariadb_root_password
+
+  storage:
+    size: 20Gi
+    storageClassName: local-path
+    resizeInUseVolumes: true
+    waitForVolumeResize: true
+    volumeClaimTemplate:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 20Gi
+      storageClassName: local-path
+
+  replicas: 3
+  replicasAllowEvenNumber: false
+
+  metrics:
+    enabled: true
+
+  galera:
+    enabled: true
+    primary:
+      podIndex: 0
+      automaticFailover: true
+    recovery:
+      enabled: true
+      minClusterSize: 1
+    config:
+      reuseStorageVolume: false
+      volumeClaimTemplate:
+        resources:
+          requests:
+            storage: 1Gi
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: longhorn
+
+  service:
+    type: ClusterIP
+
+  primaryService:
+    type: ClusterIP
+
+  secondaryService:
+    type: ClusterIP
+
+  resources:
+    requests:
+      cpu: 3
+      memory: 6Gi
+    limits:
+      cpu: 3
+      memory: 6Gi
+
+  myCnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=4915MB
+    max_allowed_packet=256MB
+    transaction-isolation=READ-COMMITTED
+    innodb_flush_log_at_trx_commit=2
+    innodb_lock_wait_timeout=50
+    innodb_deadlock_detect=ON
+    innodb_thread_concurrency=0
+    innodb_flush_method=O_DIRECT
+    innodb_file_per_table=1
+    innodb_log_buffer_size=64M
+    innodb_read_io_threads=4
+    innodb_write_io_threads=4
+    wsrep_retry_autocommit=2
+
+  env:
+    - name: TZ
+      value: America/Lima
+
+  updateStrategy:
+    type: ReplicasFirstPrimaryLast
+    autoUpdateDataPlane: true
+
+  nodeSelector:
+    kubernetes.io/arch: amd64
+
+  affinity:
+    antiAffinityEnabled: true
+
+  podDisruptionBudget:
+    maxUnavailable: 33%
+
+  priorityClassName: system-node-critical
+
+  livenessProbe:
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+  readinessProbe:
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+  startupProbe:
+    failureThreshold: 100
+    periodSeconds: 5
+    timeoutSeconds: 5
