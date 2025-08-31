@@ -15,8 +15,8 @@ spec:
     key: mariadb_root_password
 
   storage:
-    size: 20Gi
-    storageClassName: local-path
+    size: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    storageClassName: local-path # <--- ¡CAMBIA ESTO A TU NECESIDAD!
     resizeInUseVolumes: true
     waitForVolumeResize: true
     volumeClaimTemplate:
@@ -24,8 +24,8 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: 20Gi
-      storageClassName: local-path
+          storage: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      storageClassName: local-path # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   replicas: 3
   replicasAllowEvenNumber: false
@@ -46,10 +46,10 @@ spec:
       volumeClaimTemplate:
         resources:
           requests:
-            storage: 1Gi
+            storage: 1Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
         accessModes:
           - ReadWriteOnce
-        storageClassName: longhorn
+        storageClassName: longhorn # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   service:
     type: ClusterIP
@@ -62,12 +62,13 @@ spec:
 
   resources:
     requests:
-      cpu: 3
-      memory: 6Gi
+      cpu: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 6Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
     limits:
-      cpu: 3
-      memory: 6Gi
-
+      cpu: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 6Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      
+  # innodb_buffer_pool_size se recomienda que sea 80% de la RAM total del nodo
   myCnf: |
     [mariadb]
     bind-address=*
