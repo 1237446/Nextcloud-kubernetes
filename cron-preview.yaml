@@ -28,6 +28,7 @@ spec:
                 mountPath: /var/www/html
               - name: nextcloud-data
                 mountPath: /var/www/html/data
+                subPath: data
               - name: nextcloud-ini
                 mountPath: /usr/local/etc/php/conf.d/nextcloud.ini
                 subPath: nextcloud.ini
