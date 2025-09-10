@@ -7,18 +7,20 @@ metadata:
   name: redis-external-config
   namespace: nextcloud
 data:
-  # maxmemory se recomienda que sea 1GB menos de la RAM total del nodo
   redis-additional.conf: |
     tcp-keepalive 300
-    maxmemory 3072mb
+    maxmemory 5120mb
     maxmemory-policy allkeys-lru
     save ""
-    appendonly no
     protected-mode yes
     slowlog-max-len 256
-    slowlog-log-slower-than 10000
+    slowlog-log-slower-than 1000
     stream-node-max-bytes 4096
     databases 1
+    io-threads-do-reads yes
+    io-threads 2
+    appendonly yes
+    appendfsync no
 
 ---
 #-----------------------------------------------------------
@@ -43,20 +45,20 @@ spec:
 
     resources:
       requests:
-        cpu: "500m" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-        memory: "512Mi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-      limits:
         cpu: "1" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-        memory: "1Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        memory: "6Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      limits:
+        cpu: "4" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        memory: "6Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   storage:
     volumeClaimTemplate:
       spec:
-        storageClassName: longhorn
+        storageClassName: longhorn # <--- ¡CAMBIA ESTO A TU NECESIDAD!
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 5Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            storage: 10Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   redisExporter:
     enabled: false
@@ -77,3 +79,4 @@ spec:
                 values:
                   - redis-replication
           topologyKey: "kubernetes.io/hostname"
+
