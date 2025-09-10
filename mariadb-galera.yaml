@@ -15,7 +15,7 @@ spec:
     key: mariadb_root_password
 
   storage:
-    size: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    size: 50Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
     storageClassName: longhorn-db
     resizeInUseVolumes: true
     waitForVolumeResize: true
@@ -24,8 +24,8 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-      storageClassName: longhorn-db
+          storage: 50Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      storageClassName: longhorn-db # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   replicas: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
   replicasAllowEvenNumber: false
@@ -46,10 +46,10 @@ spec:
       volumeClaimTemplate:
         resources:
           requests:
-            storage: 300Mi
+            storage: 300Mi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
         accessModes:
           - ReadWriteOnce
-        storageClassName: longhorn-db
+        storageClassName: local-path # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   service:
     type: ClusterIP
@@ -62,11 +62,11 @@ spec:
 
   resources:
     requests:
-      cpu: 2 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-      memory: 4Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      cpu: 4 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 8Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
     limits:
-      cpu: 2 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-      memory: 4Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      cpu: 4 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 8Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   # innodb_buffer_pool_size se recomienda que sea 80% de la RAM total del nodo
   myCnf: |
@@ -75,19 +75,23 @@ spec:
     default_storage_engine=InnoDB
     binlog_format=row
     innodb_autoinc_lock_mode=2
-    innodb_buffer_pool_size=3277MB
-    max_allowed_packet=256MB
-    transaction-isolation=READ-COMMITTED
-    innodb_flush_log_at_trx_commit=2
-    innodb_lock_wait_timeout=50
-    innodb_deadlock_detect=ON
+    innodb_buffer_pool_size=6144M
+    innodb_log_file_size=256M
+    innodb_log_buffer_size=16M
+    max_allowed_packet=256M
     innodb_thread_concurrency=0
-    innodb_flush_method=O_DIRECT
-    innodb_file_per_table=1
-    innodb_log_buffer_size=64M
     innodb_read_io_threads=4
     innodb_write_io_threads=4
+    innodb_flush_log_at_trx_commit=2
+    innodb_flush_method=O_DIRECT
+    innodb_file_per_table=1
+    transaction-isolation=READ-COMMITTED
+    innodb_lock_wait_timeout=50
+    innodb_deadlock_detect=ON
     wsrep_retry_autocommit=2
+    wsrep_slave_threads=4
+    wsrep_provider_options="gcache.size=2G; gcs.fc_limit=1000; gcs.fc_master_slave=NO"
+    max_connections=1000
 
   env:
     - name: TZ
@@ -120,5 +124,6 @@ spec:
     failureThreshold: 85
     periodSeconds: 5
     timeoutSeconds: 5
+
 
 
