@@ -27,12 +27,15 @@ spec:
                 mountPath: /var/www/html
               - name: nextcloud-data
                 mountPath: /var/www/html/data
-              - name: nextcloud-ini
+              - name: nextcloud-php-config
                 mountPath: /usr/local/etc/php/conf.d/nextcloud.ini
                 subPath: nextcloud.ini
-              - name: opcache-ini
+              - name: nextcloud-php-config
                 mountPath: /usr/local/etc/php/conf.d/opcache-recommended.ini
                 subPath: opcache-recommended.ini
+              - name: nextcloud-php-config
+                mountPath: /usr/local/etc/php-fpm.d/www.conf
+                subPath: www.conf
             envFrom:
             - secretRef:
                 name: password-nextcloud
@@ -44,9 +47,6 @@ spec:
             - name: nextcloud-data
               persistentVolumeClaim:
                 claimName: nextcloud-data
-            - name: nextcloud-ini
+            - name: nextcloud-php-config
               configMap:
-                name: nextcloud-ini
-            - name: opcache-ini
-              configMap:
-                name: opcache-ini
+                name: nextcloud-php-config
