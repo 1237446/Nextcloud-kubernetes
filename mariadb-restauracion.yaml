@@ -1,0 +1,162 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+  namespace: nextcloud
+spec:
+  image: docker-registry1.mariadb.com/library/mariadb:10.11
+  imagePullPolicy: IfNotPresent
+
+  rootPasswordSecretKeyRef:
+    name: password-nextcloud
+    key: mariadb_root_password
+    
+  storage:
+    size: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    storageClassName: local-path # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    resizeInUseVolumes: true
+    waitForVolumeResize: true
+    volumeClaimTemplate:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      storageClassName: local-path # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+# Restauracion mediante NFS
+  bootstrapFrom:
+    volume:
+      nfs:
+        server: 192.168.0.200 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        path: /backup # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    targetRecoveryTime: 2025-09-02T03:30:01Z # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    restoreJob:
+      metadata:
+        labels:
+          sidecar.istio.io/inject: "false"
+      args:
+        - "--verbose"
+      resources:
+        requests:
+          cpu: 100m # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+          memory: 128Mi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        limits:
+          memory: 1Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+# Restauracion mediante PVC
+  # bootstrapFrom:
+  #   volume:
+  #     persistentVolumeClaim:
+  #       claimName: backup-scheduled
+  #   targetRecoveryTime: 2023-12-19T09:00:00Z # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  #   restoreJob:
+  #     metadata:
+  #       labels:
+  #         sidecar.istio.io/inject: "false"
+  #     args:
+  #       - "--verbose"
+  #     resources:
+  #       requests:
+  #         cpu: 100m # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  #         memory: 128Mi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  #       limits:
+  #         memory: 1Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+  replicas: 3
+  replicasAllowEvenNumber: false
+
+  metrics:
+    enabled: true
+
+  galera:
+    enabled: true
+    primary:
+      podIndex: 0
+      automaticFailover: true
+    recovery:
+      enabled: true
+      minClusterSize: 1
+    config:
+      reuseStorageVolume: false
+      volumeClaimTemplate:
+        resources:
+          requests:
+            storage: 300Mi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: longhorn # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+  service:
+    type: ClusterIP # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+  primaryService:
+    type: ClusterIP # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+  secondaryService:
+    type: ClusterIP # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+  resources:
+    requests:
+      cpu: 4 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 8Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    limits:
+      cpu: 4 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 8Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
+  # innodb_buffer_pool_size se recomienda que sea 80% de la RAM total del nodo
+  myCnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=6144M
+    innodb_log_file_size=256M
+    innodb_log_buffer_size=16M
+    max_allowed_packet=256M
+    innodb_thread_concurrency=0
+    innodb_read_io_threads=4
+    innodb_write_io_threads=4
+    innodb_flush_log_at_trx_commit=2
+    innodb_flush_method=O_DIRECT
+    innodb_file_per_table=1
+    transaction-isolation=READ-COMMITTED
+    innodb_lock_wait_timeout=50
+    innodb_deadlock_detect=ON
+    wsrep_retry_autocommit=2
+    wsrep_slave_threads=4
+    wsrep_provider_options="gcache.size=2G; gcs.fc_limit=1000; gcs.fc_master_slave=NO"
+    max_connections=1000
+
+  env:
+    - name: TZ
+      value: America/Lima
+
+  updateStrategy:
+    type: ReplicasFirstPrimaryLast
+    autoUpdateDataPlane: true
+
+  nodeSelector:
+    kubernetes.io/arch: amd64
+
+  affinity:
+    antiAffinityEnabled: true
+
+  podDisruptionBudget:
+    maxUnavailable: 33%
+
+  priorityClassName: system-node-critical
+
+  livenessProbe:
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+  readinessProbe:
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+  startupProbe:
+    failureThreshold: 100
+    periodSeconds: 5
+    timeoutSeconds: 5
