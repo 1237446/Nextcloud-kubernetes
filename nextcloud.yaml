@@ -44,11 +44,11 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nextcloud-ini
+  name: nextcloud-php-config
   namespace: nextcloud
 data:
   nextcloud.ini: |
-    memory_limit = 1024M
+    memory_limit = 512M
     upload_max_filesize = 30G
     post_max_size = 30G
     max_execution_time = 3600
@@ -56,21 +56,11 @@ data:
     output_buffering = Off
     date.timezone = America/Lima
 
----
-#---------------------------------------------------------------------
-# Archivo de configuracion nextcloud.ini
-#---------------------------------------------------------------------
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: opcache-ini
-  namespace: nextcloud
-data:
   opcache-recommended.ini: |
     opcache.enable=1
-    opcache.interned_strings_buffer=64
+    opcache.interned_strings_buffer=64M
     opcache.max_accelerated_files=20000
-    opcache.memory_consumption=256
+    opcache.memory_consumption=256M
     opcache.save_comments=1
     opcache.revalidate_freq=60
     opcache.jit=1255
@@ -79,26 +69,16 @@ data:
     opcache.fast_shutdown=1
     opcache.enable_cli=1
 
----
-#---------------------------------------------------------------------
-# Archivo de configuracion php-fpm
-#---------------------------------------------------------------------
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: nextcloud-fpm-config
-  namespace: nextcloud
-data:
   www.conf: |
     [www]
     user = www-data
     group = www-data
     listen = 127.0.0.1:9000
     pm = dynamic
-    pm.max_children = 70
-    pm.start_servers = 14
-    pm.min_spare_servers = 10
-    pm.max_spare_servers = 28
+    pm.max_children = 16
+    pm.start_servers = 4
+    pm.min_spare_servers = 2
+    pm.max_spare_servers = 8
     pm.max_requests = 500
     slowlog = /var/log/php-fpm/www-slow.log
     request_slowlog_timeout = 30s
@@ -173,11 +153,11 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            cpu: "2" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-            memory: "4Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            cpu: "4" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            memory: "8Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
           limits:
             cpu: "4" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-            memory: "6Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            memory: "8Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
         ports:
           - containerPort: 80
         env:
@@ -241,14 +221,13 @@ spec:
             mountPath: /var/www/html
           - name: nextcloud-data
             mountPath: /var/www/html/data
-            subPath: data
-          - name: nextcloud-ini
+          - name: nextcloud-php-config
             mountPath: /usr/local/etc/php/conf.d/nextcloud.ini
             subPath: nextcloud.ini
-          - name: opcache-ini
+          - name: nextcloud-php-config
             mountPath: /usr/local/etc/php/conf.d/opcache-recommended.ini
             subPath: opcache-recommended.ini
-          - name: fpm-config
+          - name: nextcloud-php-config
             mountPath: /usr/local/etc/php-fpm.d/www.conf
             subPath: www.conf
       volumes:
@@ -258,15 +237,9 @@ spec:
         - name: nextcloud-data
           persistentVolumeClaim:
             claimName: nextcloud-data
-        - name: nextcloud-ini
+        - name: nextcloud-php-config
           configMap:
-            name: nextcloud-ini
-        - name: opcache-ini
-          configMap:
-            name: opcache-ini
-        - name: fpm-config
-          configMap:
-            name: nextcloud-fpm-config
+            name: nextcloud-php-config
 
 ---
 #---------------------------------------------------------------------
