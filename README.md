@@ -125,7 +125,10 @@ NAME                                               READY   STATUS              R
 nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running             0          60s
 ```
 
-### :open_file_folder:Longhorn
+### :open_file_folder: aprovisionador de almacenamiento
+Usaremos 2 sistemas de almacenamiento para la instalacion de las aplicaciones, Local-Path para MariaDB y Redis y longhorn o Rook-ceph para nextcloud
+
+#### Longhorn
 Instala el paquete nfs en todos los nodos
 ```
 sudo apt-get update
