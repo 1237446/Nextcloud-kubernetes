@@ -16,7 +16,7 @@ spec:
 
   storage:
     size: 50Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-    storageClassName: longhorn-db
+    storageClassName: local-path
     resizeInUseVolumes: true
     waitForVolumeResize: true
     volumeClaimTemplate:
@@ -25,7 +25,7 @@ spec:
       resources:
         requests:
           storage: 50Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-      storageClassName: longhorn-db # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      storageClassName: local-path # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   replicas: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
   replicasAllowEvenNumber: false
@@ -124,6 +124,7 @@ spec:
     failureThreshold: 85
     periodSeconds: 5
     timeoutSeconds: 5
+
 
 
 
