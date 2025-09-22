@@ -9,18 +9,18 @@ metadata:
 data:
   redis-additional.conf: |
     tcp-keepalive 300
-    maxmemory 5120mb
+    maxmemory 3072mb
     maxmemory-policy allkeys-lru
-    save ""
+    save 900 1
     protected-mode yes
     slowlog-max-len 256
     slowlog-log-slower-than 1000
     stream-node-max-bytes 4096
     databases 1
     io-threads-do-reads yes
-    io-threads 2
+    io-threads 4
     appendonly yes
-    appendfsync no
+    appendfsync everysec
 
 ---
 #-----------------------------------------------------------
@@ -46,15 +46,15 @@ spec:
     resources:
       requests:
         cpu: "1" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-        memory: "6Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        memory: "4Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
       limits:
-        cpu: "4" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-        memory: "6Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        cpu: "2" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        memory: "4Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   storage:
     volumeClaimTemplate:
       spec:
-        storageClassName: longhorn # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        storageClassName: local-path # <--- ¡CAMBIA ESTO A TU NECESIDAD!
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
@@ -79,4 +79,5 @@ spec:
                 values:
                   - redis-replication
           topologyKey: "kubernetes.io/hostname"
+
 
