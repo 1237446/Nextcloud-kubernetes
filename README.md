@@ -125,72 +125,78 @@ NAME                                               READY   STATUS              R
 nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running             0          60s
 ```
 
-### :open_file_folder: aprovisionador de almacenamiento
-Usaremos 2 sistemas de almacenamiento para la instalacion de las aplicaciones, Local-Path para MariaDB y Redis y longhorn o Rook-ceph para nextcloud
+### :open_file_folder: Rook-Ceph
 
-#### Longhorn
 Instala el paquete nfs en todos los nodos
 ```
 sudo apt-get update
-sudo apt-get install open-iscsi -y
-sudo systemctl enable --now iscsid
-sudo systemctl status iscsid
-```
-
-Crea el namespace
-```
-kubectl create namespace longhorn-system
+sudo apt-get install nfs-common -y
 ```
 
 Agrega el repositorio de Helm
 ```
-helm repo add longhorn https://charts.longhorn.io
+helm repo add rook-release https://charts.rook.io/release
 helm repo update
 ```
 
 Instala el controlador
-> [!NOTE]
-> Verifica que la version sea la actual 
 ```
-helm install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace --version 1.9.0
+helm install --create-namespace --namespace rook-ceph rook-ceph rook-release/rook-ceph
+helm install --create-namespace --namespace rook-ceph rook-ceph-cluster \
+   --set operatorNamespace=rook-ceph rook-release/rook-ceph-cluster
 ```
-
 Verificar los Pods
 ```
-kubectl get pods -n longhorn-system
+kubectl get pods -n rook-system
 ```
 ```
-NAMEREADYSTATUSRESTARTSAGE
-NAME                                                     READY   STATUS    RESTARTS        AGE
-csi-attacher-7bfc99fdf6-2r97s                            1/1     Running   0               14m
-csi-attacher-7bfc99fdf6-k2bkv                            1/1     Running   0               14m
-csi-attacher-7bfc99fdf6-kfvwq                            1/1     Running   0               14m
-csi-provisioner-5bfbf9655-9pwbd                          1/1     Running   0               14m
-csi-provisioner-5bfbf9655-qgn8r                          1/1     Running   0               14m
-csi-provisioner-5bfbf9655-zgs6v                          1/1     Running   0               14m
-csi-resizer-6d8bdc48b6-cvrt4                             1/1     Running   0               14m
-csi-resizer-6d8bdc48b6-pzbpd                             1/1     Running   0               14m
-csi-resizer-6d8bdc48b6-v4pv9                             1/1     Running   0               14m
-csi-snapshotter-68467df45d-9wp2p                         1/1     Running   0               14m
-csi-snapshotter-68467df45d-lklv4                         1/1     Running   0               14m
-csi-snapshotter-68467df45d-m77jw                         1/1     Running   0               14m
-engine-image-ei-e09d8caa-ggczp                           1/1     Running   0               20d
-engine-image-ei-e09d8caa-p6kqx                           1/1     Running   0               20d
-engine-image-ei-e09d8caa-sg6g6                           1/1     Running   0               20d
-instance-manager-69a4c110e39850503288e780e2b60bc1        1/1     Running   0               20d
-instance-manager-cbffff0651010bfef8a4203382d798d5        1/1     Running   0               14m
-instance-manager-da8f677e9d223e452f1b0fd03fbd9c07        1/1     Running   0               14m
-longhorn-csi-plugin-946ch                                3/3     Running   0               14m
-longhorn-csi-plugin-qc6wl                                3/3     Running   0               14m
-longhorn-csi-plugin-tzh8x                                3/3     Running   0               14m
-longhorn-driver-deployer-54599c447c-696ks                1/1     Running   0               14m
-longhorn-manager-42r8x                                   2/2     Running   0               14m
-longhorn-manager-dvgmv                                   2/2     Running   0               14m
-longhorn-manager-wz45f                                   2/2     Running   0               14m
-longhorn-ui-6b44759848-b6bv2                             1/1     Running   0               14m
-longhorn-ui-6b44759848-p6lfg                             1/1     Running   0               14m
-share-manager-pvc-47121f3e-96ce-476f-8327-9b1aa9686606   1/1     Running   0               14m
-share-manager-pvc-90fe8ee8-ea24-4860-bad3-5625dcdaf2d5   1/1     Running   0               14m
+NAME                                                        READY   STATUS      RESTARTS   AGE
+ceph-csi-controller-manager-778798b996-xzwsf                1/1     Running     0          18m
+rook-ceph-crashcollector-node-01-56f879db9-9fbqb            1/1     Running     0          8m50s
+rook-ceph-crashcollector-node-02-59c8bc4d4b-vt4v6           1/1     Running     0          11m
+rook-ceph-crashcollector-node-03-d4b9879c-qnc84             1/1     Running     0          11m
+rook-ceph-crashcollector-node-04-7d7f6fd6d8-8ppc9           1/1     Running     0          11m
+rook-ceph-crashcollector-node-06-76758c6b5d-w7h65           1/1     Running     0          9m24s
+rook-ceph-crashcollector-node-08-7569f888b-9b8j6            1/1     Running     0          10m
+rook-ceph-exporter-node-01-69cd9457f8-7tjdb                 1/1     Running     0          8m50s
+rook-ceph-exporter-node-02-678c985585-lsnjd                 1/1     Running     0          11m
+rook-ceph-exporter-node-03-687d884886-29lm2                 1/1     Running     0          11m
+rook-ceph-exporter-node-04-85fc8899bc-rq6rb                 1/1     Running     0          11m
+rook-ceph-exporter-node-06-64c5747c89-w6wq4                 1/1     Running     0          9m21s
+rook-ceph-exporter-node-08-6b4b98f7cc-g84lm                 1/1     Running     0          10m
+rook-ceph-mds-ceph-filesystem-a-c7b5999c-x5hwj              2/2     Running     0          9m25s
+rook-ceph-mds-ceph-filesystem-b-67d8c597c7-5hpkm            2/2     Running     0          9m24s
+rook-ceph-mgr-a-6fb87444d6-ghrfk                            3/3     Running     0          11m
+rook-ceph-mgr-b-7684d8447-dlbgf                             3/3     Running     0          11m
+rook-ceph-mon-a-846db54f48-p7759                            2/2     Running     0          17m
+rook-ceph-mon-b-5d75f9c44b-fstsf                            2/2     Running     0          16m
+rook-ceph-mon-c-9fbc7d548-56q74                             2/2     Running     0          11m
+rook-ceph-operator-668d466d68-bdlmm                         1/1     Running     0          18m
+rook-ceph-osd-0-5747c9cfb-pzdrk                             2/2     Running     0          10m
+rook-ceph-osd-1-7c798fbc77-pb5kg                            2/2     Running     0          10m
+rook-ceph-osd-prepare-node-01-x8gdv                         0/1     Completed   0          10m
+rook-ceph-osd-prepare-node-02-gfjpz                         0/1     Completed   0          10m
+rook-ceph-osd-prepare-node-03-s7jpn                         0/1     Completed   0          10m
+rook-ceph-osd-prepare-node-04-974jj                         0/1     Completed   0          10m
+rook-ceph-osd-prepare-node-06-ls2tc                         0/1     Completed   0          10m
+rook-ceph-osd-prepare-node-08-bc5cx                         0/1     Completed   0          10m
+rook-ceph-rgw-ceph-objectstore-a-5969994f6b-ww2hf           2/2     Running     0          8m50s
+rook-ceph.cephfs.csi.ceph.com-ctrlplugin-5fbdb6d6f4-ghpsr   6/6     Running     0          16m
+rook-ceph.cephfs.csi.ceph.com-ctrlplugin-5fbdb6d6f4-nk6hb   6/6     Running     0          16m
+rook-ceph.cephfs.csi.ceph.com-nodeplugin-5l452              3/3     Running     0          16m
+rook-ceph.cephfs.csi.ceph.com-nodeplugin-8rmjz              3/3     Running     0          16m
+rook-ceph.cephfs.csi.ceph.com-nodeplugin-gpwbr              3/3     Running     0          16m
+rook-ceph.cephfs.csi.ceph.com-nodeplugin-gt89q              3/3     Running     0          16m
+rook-ceph.cephfs.csi.ceph.com-nodeplugin-rkn6v              3/3     Running     0          16m
+rook-ceph.cephfs.csi.ceph.com-nodeplugin-wx67c              3/3     Running     0          16m
+rook-ceph.rbd.csi.ceph.com-ctrlplugin-7574588bc8-stnkd      6/6     Running     0          16m
+rook-ceph.rbd.csi.ceph.com-ctrlplugin-7574588bc8-z4zvd      6/6     Running     0          16m
+rook-ceph.rbd.csi.ceph.com-nodeplugin-78xrt                 3/3     Running     0          16m
+rook-ceph.rbd.csi.ceph.com-nodeplugin-h6vgm                 3/3     Running     0          16m
+rook-ceph.rbd.csi.ceph.com-nodeplugin-l8rlw                 3/3     Running     0          16m
+rook-ceph.rbd.csi.ceph.com-nodeplugin-v5mkb                 3/3     Running     0          16m
+rook-ceph.rbd.csi.ceph.com-nodeplugin-vvvlz                 3/3     Running     0          16m
+rook-ceph.rbd.csi.ceph.com-nodeplugin-w5q46                 3/3     Running     0          16m
 ```
 
 ## Instalacion de aplicaciones
