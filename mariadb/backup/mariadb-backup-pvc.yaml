@@ -1,0 +1,44 @@
+#-----------------------------------------------------------
+# MariaDB Backup via PVC
+#-----------------------------------------------------------
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-pvc
+  namespace: nextcloud
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+  schedule:
+    cron: "0 3 * * *"
+    suspend: false
+  timeZone: "UTC"
+  compression: gzip
+  inheritMetadata:
+    annotations:
+      database.myorg.io: mariadb
+  podMetadata:
+    labels:
+      sidecar.istio.io/inject: "false"
+  serviceAccountName: backup
+  storage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 1Gi
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: longhorn
+  args:
+    - --single-transaction
+    - --all-databases
+    - --verbose
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+  affinity:
+    antiAffinityEnabled: false
