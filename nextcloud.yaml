@@ -9,7 +9,7 @@ metadata:
   labels:
     app: nextcloud
 spec:
-  storageClassName: longhorn # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  storageClassName: ceph-filesystem
   volumeMode: Filesystem
   accessModes:
     - ReadWriteMany
@@ -29,7 +29,7 @@ metadata:
   labels:
     app: nextcloud
 spec:
-  storageClassName: nfs-client # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  storageClassName: nfs-client
   volumeMode: Filesystem
   accessModes:
     - ReadWriteMany
@@ -60,7 +60,7 @@ data:
     opcache.enable=1
     opcache.interned_strings_buffer=64M
     opcache.max_accelerated_files=20000
-    opcache.memory_consumption=256M
+    opcache.memory_consumption=512M
     opcache.save_comments=1
     opcache.revalidate_freq=60
     opcache.jit=1255
@@ -75,11 +75,11 @@ data:
     group = www-data
     listen = 127.0.0.1:9000
     pm = dynamic
-    pm.max_children = 50
-    pm.start_servers = 20
-    pm.min_spare_servers = 10
-    pm.max_spare_servers = 30
-
+    pm.max_children = 60
+    pm.start_servers = 30
+    pm.min_spare_servers = 30
+    pm.max_spare_servers = 40
+    
 ---
 #-----------------------------------------------------------
 # Modo de publicacion de Nextcloud
@@ -112,7 +112,7 @@ metadata:
   labels:
     app: nextcloud
 spec:
-  replicas: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+  replicas: 1
   selector:
     matchLabels:
       app: nextcloud
@@ -123,41 +123,28 @@ spec:
       labels:
         app: nextcloud
     spec:
-      initContainers:
-        #-----------------------------------------------------------
-        # Verificacion de conexion a postgresql
-        #-----------------------------------------------------------
-      - name: wait-for-mariadb-cluster
-        image: busybox:1.36
-        command: ['sh', '-c', 'until nc -z mariadb-galera 3306; do echo waiting for mariadb; sleep 2; done;']
-        #-----------------------------------------------------------
-        # Verificacion de conexion a redis
-        #-----------------------------------------------------------
-      - name: wait-for-redis-cluster
-        image: busybox:1.36
-        command: ['sh', '-c', 'until nc -z redis-replication-master 6379; do echo waiting for redis; sleep 2; done;']
       containers:
       - name: nextcloud
-        image: nextcloud:stable-apache
+        image: nextcloud:stable-apache # <--- ¡CAMBIA ESTO A TU NECESIDAD!
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            cpu: "4" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-            memory: "8Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-          limits:
-            cpu: "4" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-            memory: "8Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            cpu: "8" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            memory: "10Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+          # limits:
+          #   cpu: "8"
+          #   memory: "8Gi"
         ports:
           - containerPort: 80
         env:
           - name: TRUSTED_DOMAINS
-            value: "domain.test.com" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            value: "nextcloud.test.local" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
           - name: OVERWRITEPROTOCOL
             value: "https"
           - name: OVERWRITEHOST
-            value: "domain.test.com" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            value: "nextcloud.test.local" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
           - name: OVERWRITECLIURL
-            value: "https://domain.test.com" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            value: "https://nextcloud.test.local" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
           - name: PHP_MAX_EXECUTION_TIME
             value: "3600"
           - name: PHP_MAX_INPUT_TIME
@@ -229,27 +216,3 @@ spec:
         - name: nextcloud-php-config
           configMap:
             name: nextcloud-php-config
-
----
-#---------------------------------------------------------------------
-# Escalado Horizontal de Nextcloud
-#---------------------------------------------------------------------
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: hpa-nextcloud
-  namespace: nextcloud
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: nextcloud
-  minReplicas: 1 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-  maxReplicas: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-      target:
-        type: Utilization
-        averageUtilization: 50 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
