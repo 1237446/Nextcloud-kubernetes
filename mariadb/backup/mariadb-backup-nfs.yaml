@@ -10,13 +10,13 @@ spec:
   mariaDbRef:
     name: mariadb-galera
   schedule:
-    cron: "30 3 * * *"
+    cron: "30 3 * * *" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
     suspend: false
   timeZone: "UTC"
-  maxRetention: 720h
+  maxRetention: 720h # <--- ¡CAMBIA ESTO A TU NECESIDAD!
   compression: bzip2
   storage:
     volume:
       nfs:
-        server: 192.168.52.191
-        path: /NFS
+        server: 192.168.52.191 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        path: /NFS # <--- ¡CAMBIA ESTO A TU NECESIDAD!
