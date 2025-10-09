@@ -1,0 +1,153 @@
+#-----------------------------------------------------------
+# MariaDB Galera Cluster
+#-----------------------------------------------------------
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+  namespace: nextcloud-test
+spec:
+  image: docker-registry1.mariadb.com/library/mariadb:10.11
+  imagePullPolicy: IfNotPresent
+
+  rootPasswordSecretKeyRef:
+    name: password-nextcloud
+    key: mariadb_root_password
+
+  storage:
+    size: 100Gi
+    storageClassName: ceph-block
+
+  #---------------------------------------------------------
+  # Restauracion desde Backup via NFS
+  #---------------------------------------------------------
+  bootstrapFrom:
+    volume:
+      nfs:
+        server: 192.168.52.191
+        path: /NFS
+    targetRecoveryTime: 2025-10-03T17:02:51Z # Tag del backup
+    restoreJob:
+      metadata:
+        labels:
+          sidecar.istio.io/inject: "false"
+      args:
+        - "--verbose"
+      resources:
+        requests:
+          cpu: 500m
+          memory: 512Mi
+        limits:
+          memory: 1Gi
+          
+  #---------------------------------------------------------
+  # Restauracion desde Backup via PVC
+  #---------------------------------------------------------
+  # bootstrapFrom:
+  #   volume:
+  #     persistentVolumeClaim:
+  #       claimName: backup-scheduled
+  #   targetRecoveryTime: 2023-12-19T09:00:00Z
+  #   restoreJob:
+  #     metadata:
+  #       labels:
+  #         sidecar.istio.io/inject: "false"
+  #     args:
+  #       - "--verbose"
+  #     resources:
+  #       requests:
+  #         cpu: 100m
+  #         memory: 128Mi
+  #       limits:
+  #         memory: 1Gi
+
+  replicas: 3
+  replicasAllowEvenNumber: false
+
+  metrics:
+    enabled: true
+
+  galera:
+    enabled: true 
+    config:
+      reuseStorageVolume: false
+      volumeClaimTemplate:
+        resources:
+          requests:
+            storage: 50Gi
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: ceph-block
+
+  service:
+    type: ClusterIP
+
+  primaryService:
+    type: ClusterIP
+
+  secondaryService:
+    type: ClusterIP
+
+  resources:
+    requests:
+      cpu: 4
+      memory: 8Gi
+    limits:
+      cpu: 4
+      memory: 8Gi
+
+  myCnf: |
+    [mariadb]
+    bind-address=*
+    default_storage_engine=InnoDB
+    binlog_format=row
+    innodb_autoinc_lock_mode=2
+    innodb_buffer_pool_size=6114M
+    innodb_log_file_size=512M
+    innodb_log_buffer_size=16M
+    max_allowed_packet=256M
+    innodb_thread_concurrency=0
+    innodb_read_io_threads=4
+    innodb_write_io_threads=4
+    innodb_flush_log_at_trx_commit=2
+    innodb_flush_method=O_DIRECT
+    innodb_file_per_table=1
+    transaction-isolation=READ-COMMITTED
+    innodb_lock_wait_timeout=50
+    innodb_deadlock_detect=ON
+    wsrep_retry_autocommit=2
+    wsrep_slave_threads=8
+    wsrep_provider_options="gcache.size=1G; gcs.fc_limit=1000; gcs.fc_master_slave=NO"
+    max_connections=2000
+
+  env:
+    - name: TZ
+      value: America/Lima
+
+  updateStrategy:
+    type: ReplicasFirstPrimaryLast
+    autoUpdateDataPlane: true
+
+  nodeSelector:
+    kubernetes.io/arch: amd64
+
+  affinity:
+    antiAffinityEnabled: true
+
+  podDisruptionBudget:
+    maxUnavailable: 33%
+
+  priorityClassName: system-node-critical
+
+  livenessProbe:
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+  readinessProbe:
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+  startupProbe:
+    failureThreshold: 100
+    periodSeconds: 5
+    timeoutSeconds: 5
