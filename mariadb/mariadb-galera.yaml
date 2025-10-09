@@ -5,7 +5,7 @@ apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
-  namespace: nextcloud
+  namespace: nextcloud-test
 spec:
   image: docker-registry1.mariadb.com/library/mariadb:10.11
   imagePullPolicy: IfNotPresent
@@ -15,41 +15,26 @@ spec:
     key: mariadb_root_password
 
   storage:
-    size: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-    storageClassName: local-path # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-    resizeInUseVolumes: true
-    waitForVolumeResize: true
-    volumeClaimTemplate:
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 20Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-      storageClassName: local-path # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    size: 100Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    storageClassName: ceph-block
 
-  replicas: 3
+  replicas: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
   replicasAllowEvenNumber: false
 
   metrics:
     enabled: true
 
   galera:
-    enabled: true
-    primary:
-      podIndex: 0
-      automaticFailover: true
-    recovery:
-      enabled: true
-      minClusterSize: 1
+    enabled: true 
     config:
       reuseStorageVolume: false
       volumeClaimTemplate:
         resources:
           requests:
-            storage: 1Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            storage: 50Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
         accessModes:
           - ReadWriteOnce
-        storageClassName: longhorn # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        storageClassName: ceph-block
 
   service:
     type: ClusterIP
@@ -62,32 +47,35 @@ spec:
 
   resources:
     requests:
-      cpu: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-      memory: 6Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      cpu: 4 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 8Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
     limits:
-      cpu: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-      memory: 6Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
-      
-  # innodb_buffer_pool_size se recomienda que sea 80% de la RAM total del nodo
+      cpu: 4 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 8Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+
   myCnf: |
     [mariadb]
     bind-address=*
     default_storage_engine=InnoDB
     binlog_format=row
     innodb_autoinc_lock_mode=2
-    innodb_buffer_pool_size=4915MB
-    max_allowed_packet=256MB
-    transaction-isolation=READ-COMMITTED
-    innodb_flush_log_at_trx_commit=2
-    innodb_lock_wait_timeout=50
-    innodb_deadlock_detect=ON
+    innodb_buffer_pool_size=6114M
+    innodb_log_file_size=512M
+    innodb_log_buffer_size=16M
+    max_allowed_packet=256M
     innodb_thread_concurrency=0
-    innodb_flush_method=O_DIRECT
-    innodb_file_per_table=1
-    innodb_log_buffer_size=64M
     innodb_read_io_threads=4
     innodb_write_io_threads=4
+    innodb_flush_log_at_trx_commit=2
+    innodb_flush_method=O_DIRECT
+    innodb_file_per_table=1
+    transaction-isolation=READ-COMMITTED
+    innodb_lock_wait_timeout=50
+    innodb_deadlock_detect=ON
     wsrep_retry_autocommit=2
+    wsrep_slave_threads=8
+    wsrep_provider_options="gcache.size=1G; gcs.fc_limit=1000; gcs.fc_master_slave=NO"
+    max_connections=2000
 
   env:
     - name: TZ
