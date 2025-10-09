@@ -26,7 +26,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: test.domain.local
+  - host: nextcloud.test.local
     http:
       paths:
       - path: /
@@ -38,5 +38,5 @@ spec:
               number: 80
   tls:
   - hosts:
-    - test.domain.local
-    secretName: test.domain.local-tls
+    - nextcloud.test.local
+    secretName: nextcloud.test.local-tls
