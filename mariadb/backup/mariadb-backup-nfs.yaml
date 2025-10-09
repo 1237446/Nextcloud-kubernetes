@@ -1,0 +1,22 @@
+#-----------------------------------------------------------
+# MariaDB Backup via NFS
+#-----------------------------------------------------------
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-nfs-nextcloud
+  namespace: nextcloud
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+  schedule:
+    cron: "30 3 * * *"
+    suspend: false
+  timeZone: "UTC"
+  maxRetention: 720h
+  compression: bzip2
+  storage:
+    volume:
+      nfs:
+        server: 192.168.52.191
+        path: /NFS
