@@ -148,13 +148,13 @@ spec:
         #-----------------------------------------------------------
         # limites de recursos
         #-----------------------------------------------------------
-        # resources:
-        #   requests:
-        #     cpu: "1"
-        #     memory: "4Gi"
-        #   limits:
-        #     cpu: "1"
-        #     memory: "4Gi"
+        resources:
+          requests:
+            cpu: "1" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            memory: "4Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+          limits:
+            cpu: "1" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            memory: "4Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
         volumeMounts:
         - name: clamav-config
           mountPath: /etc/clamav/clamd.conf
@@ -169,32 +169,3 @@ spec:
       - name: freshclam-config
         configMap:
           name: freshclam-config
-
----
-#---------------------------------------------------------------------
-# Escalado Horizontal de ClamAV
-#---------------------------------------------------------------------
-# apiVersion: autoscaling/v2
-# kind: HorizontalPodAutoscaler
-# metadata:
-#   name: hpa-clamav
-# spec:
-#   scaleTargetRef:
-#     apiVersion: apps/v1
-#     kind: Deployment
-#     name: clamav
-#   minReplicas: 1
-#   maxReplicas: 3
-#   metrics:
-#   - type: Resource
-#     resource:
-#       name: cpu
-#       target:
-#         type: Utilization
-#         averageUtilization: 50
-#   - type: Resource
-#     resource:
-#       name: memory
-#       target:
-#         type: Utilization
-#         averageUtilization: 80
