@@ -15,8 +15,8 @@ spec:
     key: mariadb_root_password
 
   storage:
-    size: 100Gi
-    storageClassName: ceph-block
+    size: 100Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+    storageClassName: ceph-block # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   #---------------------------------------------------------
   # Restauracion desde Backup via NFS
@@ -24,8 +24,8 @@ spec:
   bootstrapFrom:
     volume:
       nfs:
-        server: 192.168.52.191
-        path: /NFS
+        server: 192.168.52.191 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        path: /NFS # <--- ¡CAMBIA ESTO A TU NECESIDAD!
     targetRecoveryTime: 2025-10-03T17:02:51Z # Tag del backup
     restoreJob:
       metadata:
@@ -35,10 +35,10 @@ spec:
         - "--verbose"
       resources:
         requests:
-          cpu: 500m
-          memory: 512Mi
+          cpu: 500m # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+          memory: 512Mi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
         limits:
-          memory: 1Gi
+          memory: 1Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
           
   #---------------------------------------------------------
   # Restauracion desde Backup via PVC
@@ -61,7 +61,7 @@ spec:
   #       limits:
   #         memory: 1Gi
 
-  replicas: 3
+  replicas: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
   replicasAllowEvenNumber: false
 
   metrics:
@@ -74,10 +74,10 @@ spec:
       volumeClaimTemplate:
         resources:
           requests:
-            storage: 50Gi
+            storage: 50Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
         accessModes:
           - ReadWriteOnce
-        storageClassName: ceph-block
+        storageClassName: ceph-block # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   service:
     type: ClusterIP
@@ -90,11 +90,11 @@ spec:
 
   resources:
     requests:
-      cpu: 4
-      memory: 8Gi
+      cpu: 4 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 8Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
     limits:
-      cpu: 4
-      memory: 8Gi
+      cpu: 4 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 8Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   myCnf: |
     [mariadb]
