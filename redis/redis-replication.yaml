@@ -34,7 +34,7 @@ metadata:
   labels:
     app: redis-replication
 spec:
-  clusterSize: 3
+  clusterSize: 3 # <--- ¡CAMBIA ESTO A TU NECESIDAD!
   redisConfig:
     additionalRedisConfig: redis-external-config
   kubernetesConfig:
@@ -47,11 +47,11 @@ spec:
 
     resources:
       requests:
-        cpu: "2"
-        memory: "4Gi"
+        cpu: "2" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        memory: "4Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
       limits:
-        cpu: "4"
-        memory: "4Gi"
+        cpu: "4" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        memory: "4Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   storage:
     volumeClaimTemplate:
@@ -60,7 +60,7 @@ spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 10Gi
+            storage: 10Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
   redisExporter:
     enabled: false
