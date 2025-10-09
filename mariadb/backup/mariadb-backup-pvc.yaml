@@ -10,7 +10,7 @@ spec:
   mariaDbRef:
     name: mariadb-galera
   schedule:
-    cron: "0 3 * * *"
+    cron: "0 3 * * *" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
     suspend: false
   timeZone: "UTC"
   compression: gzip
@@ -25,20 +25,20 @@ spec:
     persistentVolumeClaim:
       resources:
         requests:
-          storage: 1Gi
+          storage: 1Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
       accessModes:
-        - ReadWriteOnce
-      storageClassName: longhorn
+        - ReadWriteOnce # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      storageClassName: ceph-block
   args:
     - --single-transaction
     - --all-databases
     - --verbose
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 100m # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 128Mi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
     limits:
-      cpu: 300m
-      memory: 512Mi
+      cpu: 300m # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      memory: 512Mi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
   affinity:
     antiAffinityEnabled: false
