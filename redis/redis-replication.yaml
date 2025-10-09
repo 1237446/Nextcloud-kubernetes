@@ -1,0 +1,83 @@
+#-----------------------------------------------------------
+# Redis Config
+#-----------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-external-config
+  namespace: nextcloud
+data:
+  redis-additional.conf: |
+    tcp-keepalive 300
+    maxclients 10000
+    save ""
+    appendonly no
+    maxmemory 3072mb
+    maxmemory-policy allkeys-lfu
+    protected-mode yes
+    databases 1
+    io-threads-do-reads yes
+    io-threads 4
+    slowlog-max-len 256
+    slowlog-log-slower-than 1000
+    stream-node-max-bytes 100mb
+
+---
+#-----------------------------------------------------------
+# Redis Replication
+#-----------------------------------------------------------
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: RedisReplication
+metadata:
+  name: redis-replication
+  namespace: nextcloud
+  labels:
+    app: redis-replication
+spec:
+  clusterSize: 3
+  redisConfig:
+    additionalRedisConfig: redis-external-config
+  kubernetesConfig:
+    image: quay.io/opstree/redis:v7.0.15
+    imagePullPolicy: IfNotPresent
+
+    redisSecret:
+      name: password-nextcloud
+      key: redis_password
+
+    resources:
+      requests:
+        cpu: "2"
+        memory: "4Gi"
+      limits:
+        cpu: "4"
+        memory: "4Gi"
+
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: ceph-block
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+
+  redisExporter:
+    enabled: false
+    image: quay.io/opstree/redis-exporter:v1.44.0
+    imagePullPolicy: Always
+
+  podSecurityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - redis-replication
+          topologyKey: "kubernetes.io/hostname"
