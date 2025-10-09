@@ -9,13 +9,13 @@ metadata:
   labels:
     app: collabora
 spec:
-  storageClassName: longhorn # <--- ¡DESCOMENTA ESO SI USAS ALMACENAMIENTO NFS!
+  storageClassName: ceph-block
   volumeMode: Filesystem
   accessModes:
-    - ReadWriteOnce 
+    - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 10Gi # <--- ¡CAMBIA ESTO A TU NECESIDAD!
 
 ---
 #---------------------------------------------------------------------
@@ -35,7 +35,7 @@ spec:
     - port: 9980
       targetPort: 9980
       protocol: TCP
-  type: ClusterIP 
+  type: ClusterIP
 
 ---
 #---------------------------------------------------------------------
@@ -58,6 +58,11 @@ spec:
       labels:
         app: collabora
     spec:
+      hostAliases:
+      - ip: "10.43.152.50" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+      - ip: "172.16.9.10" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+        hostnames:
+        - "nextcloud.test.local"  # <--- ¡CAMBIA ESTO A TU NECESIDAD!
       containers:
         - name: collabora-code
           image: collabora/code:latest
@@ -65,43 +70,40 @@ spec:
             - containerPort: 9980
               name: collabora
           env:
-            - name: dictionaries
-              value: "es_ES en_US"
-            - name: timezone
-              value: "America/Lima"
+            - name: aliasgroup1
+              value: "https://nextcloud\\.test\\.local:443" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            - name: server_name
+              value: "collabora.test.local" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
             - name: extra_params
-              value: "--o:ssl.enable=false --o:ssl.termination=true --o:host_url=https://apu.uni.edu.pe/" # <--- ¡CAMBIA ESTO A TU DOMINIO DE NEXTCLOUD!
+              value: "--o:ssl.enable=false --o:ssl.termination=true"
             - name: username
-              value: "admin" # <--- ¡USUARIO DE ADMINISTRACION!
+              value: "admin"
             - name: password
               valueFrom:
                 secretKeyRef:
                   name: password-nextcloud
-                  key: collabora_admin_password # <--- ¡ASEGURATE QUE SEA TU SECRET!
-            - name: domain
-              value: "apu.pitvirtual.uni.edu.pe"  # <--- ¡CAMBIA ESTO A TU DOMINIO DE COLLABORA!
+                  key: collabora_admin_password
             - name: TZ
               value: "America/Lima"
-          #-----------------------------------------------------------
-          # limites de recursos
-          #-----------------------------------------------------------             
-          # resources:
-          #   requests:
-          #     cpu: "1"
-          #     memory: "2Gi"
-          #   limits:
-          #     cpu: "1"
-          #     memory: "2Gi"
+            - name: dictionaries
+              value: "es_ES en_US"
+          resources:
+            requests:
+              cpu: "1" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+              memory: "2Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+            limits:
+              cpu: "1" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+              memory: "2Gi" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
           securityContext:
             capabilities: { add: ["MKNOD"] }
           readinessProbe:
             httpGet: { path: /hosting/discovery, port: 9980 }
-            initialDelaySeconds: 300
+            initialDelaySeconds: 180
             periodSeconds: 10
             failureThreshold: 5
           livenessProbe:
             httpGet: { path: /hosting/discovery, port: 9980 }
-            initialDelaySeconds: 300
+            initialDelaySeconds: 180
             periodSeconds: 20
             failureThreshold: 3
           volumeMounts:
@@ -111,32 +113,3 @@ spec:
         - name: collabora-data
           persistentVolumeClaim:
             claimName: collabora-pvc-data
-
----
-#---------------------------------------------------------------------
-# Escalado Horizontal de Collabora
-#---------------------------------------------------------------------
-# apiVersion: autoscaling/v2
-# kind: HorizontalPodAutoscaler
-# metadata:
-#   name: hpa-collabora
-# spec:
-#   scaleTargetRef:
-#     apiVersion: apps/v1
-#     kind: Deployment
-#     name: collabora
-#   minReplicas: 1
-#   maxReplicas: 3
-#   metrics:
-#   - type: Resource
-#     resource:
-#       name: cpu
-#       target:
-#         type: Utilization
-#         averageUtilization: 50
-#   - type: Resource
-#     resource:
-#       name: memory
-#       target:
-#         type: Utilization
-#         averageUtilization: 80
