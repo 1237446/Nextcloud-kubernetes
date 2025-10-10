@@ -1,388 +1,380 @@
-# Nextcloud en kubernetes
-Integracion de nextcloud en la plataforma de kubernetes
+# Despliegue de Nextcloud en Kubernetes
+
+Esta guía detalla el proceso para desplegar una instancia de **Nextcloud** de alta disponibilidad en un clúster de Kubernetes, integrando componentes esenciales como MariaDB, Redis, ClamAV y Collabora Online.
 
 ![guia](/imagenes/diagrama.png)
 
-Antes de realizar la instalacion, verificar los archivos y modificar los valores a los que usara
-- :key: **secrets** Este manifiesto estan las contraseñas de las demas aplicaciones
-> [!IMPORTANT]
-> en el archivo publicado estan credenciales de ejemplo, se recomienta cambiarlas al momento de pase a produccion
-- :floppy_disk: **mariadb** Servira como base de datos para almacenar la informacion de configuracion y metadatos
-- :dvd: **redis** Servira como almacenamiento cache de datos de navegacion dando mayor velocidad
-- :open_file_folder: **nextcloud** Es el aplicativo principal, el cual creara nuestra nube privada
-- :japanese_ogre: **clamAV** Servira como antivirus para los archivos alojados y escaneara los archivos que se quierean subir
-- :page_with_curl: **collabora** Servira como suite de ofimatica para los documentos via web 
+Antes de comenzar, es crucial revisar y modificar los valores en los archivos de manifiesto para que se ajusten a tu entorno.
 
-## Requisitos previos
-> [!TIP]
-> Si no tienes instalado Kubernetes puedes usar mi [guia](https://github.com/1237446/Instalacion-de-Kubernetes.)
+  * 🔑 **`secrets.yaml`**: Este manifiesto contiene las credenciales para las aplicaciones.
 
-> [!NOTE]
-> El server de NPM debes intarlo en otra instancia fuera de kubernetes. Puedes instalarlo siguiendo esta [guia](https://nginxproxymanager.com/guide/), y mi docker-compose
+> [\!IMPORTANT]
+> Las credenciales proporcionadas en el repositorio son de ejemplo. **Debes cambiarlas** antes de pasar a un entorno de producción.
 
-### :bookmark:Ingress Controller
-Agrega el repositorio de Helm
-```
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
-```
+  * 💾 **MariaDB**: Actúa como la base de datos para almacenar metadatos y configuraciones de Nextcloud.
 
-Instala el controlador
-```
-helm install ingress-nginx ingress-nginx/ingress-nginx
-```
+  * 💨 **Redis**: Funciona como un sistema de caché en memoria para mejorar la velocidad y el rendimiento de la interfaz.
 
-> [!NOTE]
-> Si sale algun error, crea el namespaces ingress-nginx
+  * 📂 **Nextcloud**: Es la aplicación principal que conforma nuestra nube privada.
 
-Verificar los Pods
-```
-kubectl get pods -n ingress-nginx
-```
-```
-NAME                                        READY   STATUS    RESTARTS        AGE
-ingress-nginx-controller-578c564c54-ln8kq   1/1     Running   0)              2m
-```
+  * 👹 **ClamAV**: Proporciona un escaneo antivirus para todos los archivos subidos a la plataforma.
 
-### :computer:MetalLB LoadBalancer
-Instala MetalLB mediante manifiesto
-```
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.2/config/manifests/metallb-native.yaml
-```
+  * 📝 **Collabora Online**: Sirve como una suite ofimática en línea, permitiendo la edición de documentos directamente desde el navegador.
 
-Verificar los Pods
-```
-kubectl get pods -n metallb-system
-```
-```
-NAME                          READY   STATUS    RESTARTS   AGE
-controller-bb5f47665-nb55f    1/1     Running   0          2m
-speaker-bvj9j                 1/1     Running   0          2m
-speaker-wxdbl                 1/1     Running   0          2m
-```
-En este caso usaremos Layer2 
-> [!WARNING]
-> Utilice sus propias direcciones IP cambiando el parámetro "addresses:" en el archivo layer2advertisement.yaml
-```yaml
-apiVersion: metallb.io/v1beta1
-kind: IPAddressPool
-metadata:
-  name: ingress-nginx
-  namespace: metallb-system
-spec:
-  addresses:
-  - 192.168.1.200-192.168.1.250 # **¡Cambia este rango por uno libre en tu red!**
----
-apiVersion: metallb.io/v1beta1
-kind: L2Advertisement
-metadata:
-  name: default-l2-advertisement
-  namespace: metallb-system
-spec:
-  ipAddressPools:
-  - first-pool
-```
+-----
 
-Aplica el manifiesto
-```
-kubectl apply -f layer2advertisement.yaml
-```
+## 1\. Requisitos Previos
 
-### :open_file_folder:NFS Provisioner
-Instala el paquete nfs en todos los nodos
-```
-sudo apt-get update
-sudo apt-get install nfs-common -y
-```
+> [\!TIP]
+> Si no tienes un clúster de Kubernetes, puedes seguir mi [guía de instalación](https://github.com/1237446/Instalacion-de-Kubernetes).
 
-Agrega el repositorio de Helm
-```
-helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner
-```
+> [\!NOTE]
+> Se recomienda instalar Nginx Proxy Manager (NPM) en una instancia separada, fuera del clúster de Kubernetes. Puedes seguir la [guía oficial](https://nginxproxymanager.com/guide/) y usar mi archivo `docker-compose.yml` como referencia.
 
-creamos el manifiesto
-> [!WARNING]
-> Utilice sus propios datos, ruta nfs y direccion ip del servidor nfs
-```
-helm template nfs-subdir-external-provisioner \
-nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
---set nfs.server=10.124.0.9 \
---set nfs.path=/data/nfs \
---set storageClass.onDelete=true > dynamic-nfs.yaml
-```
+### 🔗 Ingress Controller (nginx)
 
-Instala el manifiesto
-```
-kubectl apply -f dynamic-nfs.yaml
-```
+El Ingress Controller es necesario para exponer los servicios de Nextcloud y Collabora a la red externa.
 
-Verificamos que ingress este ejecutandoce correctamente
-``` 
-kubectl get pods
-```
-```
-NAME                                               READY   STATUS              RESTARTS   AGE
-nfs-subdir-external-provisioner-5d8784c45d-764xk   1/1     Running             0          60s
-```
+  * **Agrega el repositorio de Helm:**
+  
+      ```bash
+      helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+      helm repo update
+      ```
+  
+  * **Instala el controlador:**
+      
+      ```bash
+      helm install ingress-nginx ingress-nginx/ingress-nginx
+      ```
+  
+  * **Verifica los Pods:**
+  
+      ```bash
+      kubectl get pods -n ingress-nginx
+      ```
+      ```
+      NAME                                       READY   STATUS    RESTARTS   AGE
+      ingress-nginx-controller-578c564c54-ln8kq   1/1     Running   0          2m
+      ```
 
-### :open_file_folder: Rook-Ceph
+-----
 
-Instala el paquete nfs en todos los nodos
-```
-sudo apt-get update
-sudo apt-get install nfs-common -y
-```
+### 💻 MetalLB (LoadBalancer)
 
-Agrega el repositorio de Helm
-```
-helm repo add rook-release https://charts.rook.io/release
-helm repo update
-```
+MetalLB asignará una dirección IP externa al servicio del Ingress Controller, haciéndolo accesible desde tu red local.
 
-Instala el controlador
-```
-helm install --create-namespace --namespace rook-ceph rook-ceph rook-release/rook-ceph
-helm install --create-namespace --namespace rook-ceph rook-ceph-cluster \
-   --set operatorNamespace=rook-ceph rook-release/rook-ceph-cluster
-```
-Verificar los Pods
-```
-kubectl get pods -n rook-system
-```
-```
-NAME                                                        READY   STATUS      RESTARTS   AGE
-ceph-csi-controller-manager-778798b996-xzwsf                1/1     Running     0          18m
-rook-ceph-crashcollector-node-01-56f879db9-9fbqb            1/1     Running     0          8m50s
-rook-ceph-crashcollector-node-02-59c8bc4d4b-vt4v6           1/1     Running     0          11m
-rook-ceph-crashcollector-node-03-d4b9879c-qnc84             1/1     Running     0          11m
-rook-ceph-crashcollector-node-04-7d7f6fd6d8-8ppc9           1/1     Running     0          11m
-rook-ceph-crashcollector-node-06-76758c6b5d-w7h65           1/1     Running     0          9m24s
-rook-ceph-crashcollector-node-08-7569f888b-9b8j6            1/1     Running     0          10m
-rook-ceph-exporter-node-01-69cd9457f8-7tjdb                 1/1     Running     0          8m50s
-rook-ceph-exporter-node-02-678c985585-lsnjd                 1/1     Running     0          11m
-rook-ceph-exporter-node-03-687d884886-29lm2                 1/1     Running     0          11m
-rook-ceph-exporter-node-04-85fc8899bc-rq6rb                 1/1     Running     0          11m
-rook-ceph-exporter-node-06-64c5747c89-w6wq4                 1/1     Running     0          9m21s
-rook-ceph-exporter-node-08-6b4b98f7cc-g84lm                 1/1     Running     0          10m
-rook-ceph-mds-ceph-filesystem-a-c7b5999c-x5hwj              2/2     Running     0          9m25s
-rook-ceph-mds-ceph-filesystem-b-67d8c597c7-5hpkm            2/2     Running     0          9m24s
-rook-ceph-mgr-a-6fb87444d6-ghrfk                            3/3     Running     0          11m
-rook-ceph-mgr-b-7684d8447-dlbgf                             3/3     Running     0          11m
-rook-ceph-mon-a-846db54f48-p7759                            2/2     Running     0          17m
-rook-ceph-mon-b-5d75f9c44b-fstsf                            2/2     Running     0          16m
-rook-ceph-mon-c-9fbc7d548-56q74                             2/2     Running     0          11m
-rook-ceph-operator-668d466d68-bdlmm                         1/1     Running     0          18m
-rook-ceph-osd-0-5747c9cfb-pzdrk                             2/2     Running     0          10m
-rook-ceph-osd-1-7c798fbc77-pb5kg                            2/2     Running     0          10m
-rook-ceph-osd-prepare-node-01-x8gdv                         0/1     Completed   0          10m
-rook-ceph-osd-prepare-node-02-gfjpz                         0/1     Completed   0          10m
-rook-ceph-osd-prepare-node-03-s7jpn                         0/1     Completed   0          10m
-rook-ceph-osd-prepare-node-04-974jj                         0/1     Completed   0          10m
-rook-ceph-osd-prepare-node-06-ls2tc                         0/1     Completed   0          10m
-rook-ceph-osd-prepare-node-08-bc5cx                         0/1     Completed   0          10m
-rook-ceph-rgw-ceph-objectstore-a-5969994f6b-ww2hf           2/2     Running     0          8m50s
-rook-ceph.cephfs.csi.ceph.com-ctrlplugin-5fbdb6d6f4-ghpsr   6/6     Running     0          16m
-rook-ceph.cephfs.csi.ceph.com-ctrlplugin-5fbdb6d6f4-nk6hb   6/6     Running     0          16m
-rook-ceph.cephfs.csi.ceph.com-nodeplugin-5l452              3/3     Running     0          16m
-rook-ceph.cephfs.csi.ceph.com-nodeplugin-8rmjz              3/3     Running     0          16m
-rook-ceph.cephfs.csi.ceph.com-nodeplugin-gpwbr              3/3     Running     0          16m
-rook-ceph.cephfs.csi.ceph.com-nodeplugin-gt89q              3/3     Running     0          16m
-rook-ceph.cephfs.csi.ceph.com-nodeplugin-rkn6v              3/3     Running     0          16m
-rook-ceph.cephfs.csi.ceph.com-nodeplugin-wx67c              3/3     Running     0          16m
-rook-ceph.rbd.csi.ceph.com-ctrlplugin-7574588bc8-stnkd      6/6     Running     0          16m
-rook-ceph.rbd.csi.ceph.com-ctrlplugin-7574588bc8-z4zvd      6/6     Running     0          16m
-rook-ceph.rbd.csi.ceph.com-nodeplugin-78xrt                 3/3     Running     0          16m
-rook-ceph.rbd.csi.ceph.com-nodeplugin-h6vgm                 3/3     Running     0          16m
-rook-ceph.rbd.csi.ceph.com-nodeplugin-l8rlw                 3/3     Running     0          16m
-rook-ceph.rbd.csi.ceph.com-nodeplugin-v5mkb                 3/3     Running     0          16m
-rook-ceph.rbd.csi.ceph.com-nodeplugin-vvvlz                 3/3     Running     0          16m
-rook-ceph.rbd.csi.ceph.com-nodeplugin-w5q46                 3/3     Running     0          16m
-```
+  * **Instala MetalLB desde su manifiesto oficial:**
+  
+      ```bash
+      kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.3/config/manifests/metallb-native.yaml
+      ```
+  
+  * **Verifica los Pods en el namespace `metallb-system`:**
+  
+      ```bash
+      kubectl get pods -n metallb-system
+      ```
+      
+      ```
+      NAME                          READY   STATUS    RESTARTS   AGE
+      controller-bb5f47665-nb55f    1/1     Running   0          2m
+      speaker-bvj9j                 1/1     Running   0          2m
+      ```
+  
+  * **Configura un Pool de IPs (Layer 2):**
+      Crea un archivo `metallb-config.yaml` con el siguiente contenido.
+  
+      ```yaml
+      apiVersion: metallb.io/v1beta1
+      kind: IPAddressPool
+      metadata:
+        name: ingress-nginx-pool
+        namespace: metallb-system
+      spec:
+        addresses:
+        - 192.168.1.200-192.168.1.250 # ¡Cambia este rango!
+        autoAssign: true
+      ---
+      apiVersion: metallb.io/v1beta1
+      kind: L2Advertisement
+      metadata:
+        name: default-l2-advertisement
+        namespace: metallb-system
+      spec:
+        ipAddressPools:
+        - ingress-nginx-pool
+        interfaces:
+        - eno1
+      ```
+> [\!WARNING]
+> Asegúrate de cambiar el rango en `addresses` por un rango de IPs que esté **libre** en tu red local.
+  
+  * **Aplica la configuración:**
+  
+      ```bash
+      kubectl apply -f metallb-config.yaml
+      ```
+-----
 
-## Instalacion de aplicaciones
-Creamos el namespace que usaremos para nextcloud
-```
-kubectl create namespace nextcloud
-```
+### 🗄️ Almacenamiento Persistente
 
-instalamos los secrets
-```
-kubectl apply -f secrets.yaml
-```
+Necesitas una solución de almacenamiento para guardar los datos de forma persistente. A continuación se usara dos opciones populares.
 
-### Mariadb Operador
-Agrega el repositorio de Helm
-```
-helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
-```
+#### NFS Subdir External Provisioner
 
-Instala el controlador
-```
-helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
-helm install mariadb-operator mariadb-operator/mariadb-operator
-```
-Verificar los Pods
-```
-kubectl get pods
-```
-```
-NAME                                                READY   STATUS    RESTARTS        AGE
-mariadb-operator-5d4cb9794b-49djf                   1/1     Running   0               18s
-mariadb-operator-cert-controller-6c974b5796-xb52s   1/1     Running   0               18s
-mariadb-operator-webhook-6fdc55687d-hzrn5           1/1     Running   0               18s
-```
+Esta opción es ideal si ya tienes un servidor NFS en tu red.
 
-Instalar mariadb
-```
-kubectl apply -f mariadb-galera.yaml
-```
+  * **Instala el cliente NFS en todos los nodos del clúster:**
+  
+      ```bash
+      sudo apt-get update
+      sudo apt-get install nfs-common -y
+      ```
+  
+  * **Agrega el repositorio de Helm:**
+  
+      ```bash
+      helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+      ```
 
-Verificar los Pods
-```
-kubectl get pods -n nextcloud
-```
-```
-NAME                            READY   STATUS      RESTARTS   AGE
-mariadb-galera-0                2/2     Running     0          4m
-mariadb-galera-1                2/2     Running     0          4m
-mariadb-galera-2                2/2     Running     0          4m
-```
+  * **Crea el manifiesto de configuración (`dynamic-nfs.yaml`):**
+  
+      ```bash
+      helm template nfs-subdir-external-provisioner \
+      nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+      --set nfs.server=10.124.0.9 \
+      --set nfs.path=/data/nfs \
+      --set storageClass.onDelete=true > dynamic-nfs.yaml
+      ```
 
-Instalar la base de datos, usuario y permisos
-> [!WARNING]
-> Aplique el manifiesto despues que todos los pods de mariadb estan en **Running**
-```
-kubectl apply -f mariadb-extra.yaml
-```
+> [\!WARNING]
+> Reemplaza `nfs.server` con la IP y `nfs.path` con la ruta de tu servidor NFS.
 
-Verificar la base de datos
-```
-kubectl get databases -n nextcloud
-```
-```
-NAME        READY   STATUS    CHARSET   COLLATE           MARIADB          AGE     NAME
-nextcloud   True    Created   utf8      utf8_general_ci   mariadb-galera   7s 
-```
+  * **Instala el provisionador:**
+  
+      ```bash
+      kubectl apply -f dynamic-nfs.yaml
+      ```
+  
+  * **Verifica que el Pod esté en ejecución:**
+  
+      ```bash
+      kubectl get pods
+      ```
+      ```
+      NAME                                       READY   STATUS    RESTARTS   AGE
+      nfs-subdir-external-provisioner-5d8784c45d   1/1     Running   0          60s
+      ```
 
-Verificar usuario
-```
-kubectl get user -n nextcloud
-```
-```
-NAME                         READY   STATUS    MAXCONNS   MARIADB          AGE
-mariadb-galera-mariadb-sys   True    Created   20         mariadb-galera   5m
-nextcloud                    True    Created   50         mariadb-galera   10s
-```
+#### Rook-Ceph
 
-Verificar permisos de usuario
-```
-kubectl get grant -n nextcloud
-```
-```
-NAME                                     READY   STATUS    DATABASE    TABLE         USERNAME      GRANTOPT   MARIADB          AGE
-grant                                    True    Created   nextcloud   *             nextcloud     true       mariadb-galera   14s
-mariadb-galera-mariadb-sys-global-priv   True    Created   mysql       global_priv   mariadb.sys   false      mariadb-galera   5m
-```
+Rook-Ceph es una solución de almacenamiento distribuido nativa de la nube, ideal para entornos que requieren alta disponibilidad y escalabilidad.
 
-### Redis Operador
-Agrega el repositorio de Helm
-```
-helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/
-```
+  * **Agrega el repositorio de Helm de Rook:**
+  
+      ```bash
+      helm repo add rook-release https://charts.rook.io/release
+      helm repo update
+      ```
+  
+  * **Despliega el operador de Rook-Ceph:**
+  
+      ```bash
+      helm install --create-namespace --namespace rook-ceph rook-ceph rook-release/rook-ceph
+      ```
+  
+  * **Despliega el clúster de Ceph:**
+  
+      ```bash
+      helm install --create-namespace --namespace rook-ceph rook-ceph-cluster \
+         --set operatorNamespace=rook-ceph rook-release/rook-ceph-cluster
+      ```
+  
+  * **Verifica los Pods:**
+  La verificación de los pods en `rook-ceph` puede tomar varios minutos. Asegúrate de que todos los componentes, como `mgr`, `mon`, y `osd`, estén en estado `Running` o `Completed`.
+  
+      ```bash
+      kubectl get pods -n rook-ceph
+      ```
+  
+      *El resultado será una lista larga de pods correspondientes al clúster de Ceph.*
 
-Instala el controlador
-```
-helm install redis-operator ot-helm/redis-operator --namespace ot-operators --create-namespace
-```
+-----
 
-Verificar el Pod
-```
-kubectl get pods -n ot-operators
-```
-```
-NAME                             READY   STATUS    RESTARTS        AGE
-redis-operator-d9d5d8769-6kjht   1/1     Running   0               20s
-```
+## 2\. Despliegue de los Componentes de Nextcloud
 
-Instalar redis
-```
-kubectl apply -f redis-sentinel.yaml
-```
+Ahora, procederemos a instalar las aplicaciones que componen la solución.
 
-Verificar los Pods
-```
-kubectl get pods -n nextcloud
-```
-```
-NAME                            READY   STATUS      RESTARTS   AGE
-redis-replication-0             1/1     Running     0          3m
-redis-replication-1             1/1     Running     0          3m
-redis-replication-2             1/1     Running     0          3m
-redis-sentinel-sentinel-0       1/1     Running     0          3m
-redis-sentinel-sentinel-1       1/1     Running     0          3m
-redis-sentinel-sentinel-2       1/1     Running     0          3m
-```
+  * **Crea el namespace para Nextcloud:**
+  
+      ```bash
+      kubectl create namespace nextcloud
+      ```
+  
+  * **Aplica los secretos con tus credenciales personalizadas:**
+      
+      ```bash
+      kubectl apply -f secrets.yaml -n nextcloud
+      ```
 
-## Nextcloud
-Instalar nextcloud
-```
-kubectl apply -f nextcloud.yaml
-```
+### MariaDB Operator
 
-Verificar el Pod
-```
-kubectl get pods -n nextcloud
-```
-```
-NAME                            READY   STATUS      RESTARTS   AGE
-nextcloud-75df488cff-fg4ll      1/1     Running     0          3s
-```
+Utilizaremos el operador de MariaDB para gestionar nuestro clúster de base de datos de forma automatizada.
 
-Esperar a que se instale completamente nextcloud
-> [!NOTE]
-> El tiempo de instalacion dependera del tipo de instalacion usado
-```
-kubectl logs -n nextcloud nextcloud-5dff54784f-pqmqn
-Defaulted container "nextcloud" out of: nextcloud, wait-for-mariadb-cluster (init),
-wait-for-redis-cluster (init)
-Configuring Redis as session handler
-Initializing nextcloud 31.0.6.2 ...
-New nextcloud instance
-Installing with MySQL database
-=> Searching for hook scripts (*.sh) to run, located in the folder
-"/docker-entrypoint-hooks.d/pre-installation"
-==> Skipped: the "pre-installation" folder is empty (or does not exist)
-Starting nextcloud installation
-Nextcloud was successfully installed
-=> Searching for hook scripts (*.sh) to run, located in the folder
-"/docker-entrypoint-hooks.d/post-installation"
-==> Skipped: the "post-installation" folder is empty (or does not exist)
-Initializing finished
-=> Searching for hook scripts (*.sh) to run, located in the folder
-"/docker-entrypoint-hooks.d/before-starting"
-==> Skipped: the "before-starting" folder is empty (or does not exist)
-AH00558: apache2: Could not reliably determine the server's fully qualified domain
-name, using 10.244.1.10. Set the 'ServerName' directive globally to suppress this
-message
-AH00558: apache2: Could not reliably determine the server's fully qualified domain
-name, using 10.244.1.10. Set the 'ServerName' directive globally to suppress this
-message
-7[Fri Aug 01 15:40:08.770988 2025] [mpm_prefork:notice] [pid 1:tid 1] AH00163:
-Apache/2.4.62 (Debian) PHP/8.3.23 configured -- resuming normal operations
-[Fri Aug 01 15:40:08.771023 2025] [core:notice] [pid 1:tid 1] AH00094: Command
-line: 'apache2 -D FOREGROUND'
+  * **Agrega el repositorio de Helm:**
+  
+      ```bash
+      helm repo add mariadb-operator https://helm.mariadb.com/
+      ```
+  
+  * **Instala el operador y sus CRDs:**
+  
+      ```bash
+      helm install mariadb-operator mariadb-operator/mariadb-operator --create-namespace --namespace mariadb-operator
+      ```
+  
+  * **Despliega el clúster de MariaDB Galera:**
+  
+      ```bash
+      kubectl apply -f mariadb-galera.yaml -n nextcloud
+      ```
+  
+  * **Verifica que los Pods del clúster estén listos:**
+  
+      ```bash
+      kubectl get pods -n nextcloud
+      ```
+      
+      ```
+      NAME               READY   STATUS    RESTARTS   AGE
+      mariadb-galera-0   2/2     Running   0          4m
+      mariadb-galera-1   2/2     Running   0          4m
+      mariadb-galera-2   2/2     Running   0          4m
+      ```
+  
+  * **Crea los recursos de la base de datos (DB, usuario y permisos):**
+  
+      ```bash
+      kubectl apply -f mariadb-extra.yaml -n nextcloud
+      ```
+  
+  > [\!WARNING]
+  > Aplica este manifiesto solo después de que todos los pods de `mariadb-galera` estén en estado `Running`.
+  
+  * **Verifica que los recursos se hayan creado correctamente:**
+  
+      ```bash
+      # Verificar la base de datos
+      kubectl get database -n nextcloud
+      NAME        READY   STATUS    CHARSET   COLLATE           MARIADB          AGE     NAME
+      nextcloud   True    Created   utf8      utf8_general_ci   mariadb-galera   7s 
+      
+      # Verificar el usuario
+      kubectl get user -n nextcloud
+      NAME                         READY   STATUS    MAXCONNS   MARIADB          AGE
+      mariadb-galera-mariadb-sys   True    Created   20         mariadb-galera   5m
+      nextcloud                    True    Created   50         mariadb-galera   10s
+      
+      # Verificar los permisos
+      kubectl get grant -n nextcloud
+      NAME                                     READY   STATUS    DATABASE    TABLE         USERNAME        GRANTOPT   MARIADB          AGE
+      grant                                    True    Created   nextcloud   *             nextcloud     true       mariadb-galera   14s
+      mariadb-galera-mariadb-sys-global-priv   True    Created   mysql       global_priv   mariadb.sys   false      mariadb-galera   5m
+      ```
+
+-----
+
+### Redis Operator
+
+Redis se utilizará para el almacenamiento en caché y el bloqueo de archivos, mejorando el rendimiento general.
+
+  * **Agrega el repositorio de Helm:**
+  
+      ```bash
+      helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/
+      ```
+  
+  * **Instala el operador de Redis:**
+  
+      ```bash
+      helm install redis-operator ot-helm/redis-operator --create-namespace --namespace ot-operators
+      ```
+  
+  * **Despliega el clúster de Redis con Sentinel para alta disponibilidad:**
+  
+      ```bash
+      kubectl apply -f redis-sentinel.yaml -n nextcloud
+      ```
+  
+  * **Verifica los Pods de Redis:**
+  
+      ```bash
+      kubectl get pods -n nextcloud
+      ```
+      
+      ```
+      NAME                        READY   STATUS    RESTARTS   AGE
+      redis-replication-0         1/1     Running   0          3m
+      redis-replication-1         1/1     Running   0          3m
+      redis-replication-2         1/1     Running   0          3m
+      ```
+
+## 3\. Instalación y Configuración de Nextcloud
+
+### Despliegue de la Aplicación
+
+  * ** Despliega Nextcloud:**
+  
+      ```bash
+      kubectl apply -f nextcloud.yaml -n nextcloud
+      ```
+
+  * **Verifica el Pod y espera a que la instalación inicial finalice:**
+      Puedes monitorear el progreso revisando los logs del pod.
+      
+      ```bash
+      # Primero, obtén el nombre del pod
+      kubectl get pods -n nextcloud
+      nextcloud-75df488cff-fg4ll      1/1     Running     0          3s
+      
+      # Luego, revisa los logs (reemplaza el nombre del pod)
+      kubectl logs -f -n nextcloud <nombre-del-pod-de-nextcloud>
+      Nextcloud was successfully installed
+      => Searching for hook scripts (*.sh) to run, located in the folder
+      "/docker-entrypoint-hooks.d/post-installation"
+      ==> Skipped: the "post-installation" folder is empty (or does not exist)
+      Initializing finished
+      => Searching for hook scripts (*.sh) to run, located in the folder
+      "/docker-entrypoint-hooks.d/before-starting"
+      ==> Skipped: the "before-starting" folder is empty (or does not exist)
+      AH00558: apache2: Could not reliably determine the server's fully qualified domain
+      name, using 10.244.1.10. Set the 'ServerName' directive globally to suppress this
+      message
+      ```
+
+      La instalación estará completa cuando veas una línea similar a `Apache/2.4.62 (Debian) PHP/8.3.23 configured -- resuming normal operations
+
+### Configuración del Acceso Externo (Ingress)
+
+* **1. Despliega el Ingress para Nextcloud:**
+
+```bash
+kubectl apply -f ingress-nextcloud.yaml -n nextcloud
 ```
 
-Instalar ingress de nextcloud
-```
-kubectl apply -f ingress-nextcloud.yaml
+* **2. Verifica el Ingress:**
+
+```bash
+kubectl get ingress -n nextcloud
 ```
 
-Verificar el ingress
 ```
-NAME                CLASS   HOSTS                       ADDRESS        PORTS     AGE
-nextcloud-ingress   nginx   apu.uni.edu.pe              172.16.9.246   80, 443   3s
+NAME                CLASS   HOSTS             ADDRESS         PORTS     AGE
+nextcloud-ingress   nginx   nextcloud.midominio.com   192.168.1.200   80, 443   3s
 ```
+
+Apunta el `HOST` configurado en tu Ingress a la `ADDRESS` (IP de MetalLB) en tu servidor DNS o en tu Nginx Proxy Manager.
 
 Ingresamos al pod
 ```
