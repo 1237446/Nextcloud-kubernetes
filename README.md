@@ -324,7 +324,7 @@ Redis se utilizará para el almacenamiento en caché y el bloqueo de archivos, m
 
 ### Despliegue de la Aplicación
 
-  * ** Despliega Nextcloud:**
+  * **Despliega Nextcloud:**
   
       ```bash
       kubectl apply -f nextcloud.yaml -n nextcloud
@@ -357,295 +357,316 @@ Redis se utilizará para el almacenamiento en caché y el bloqueo de archivos, m
 
 ### Configuración del Acceso Externo (Ingress)
 
-* **1. Despliega el Ingress para Nextcloud:**
-
-```bash
-kubectl apply -f ingress-nextcloud.yaml -n nextcloud
-```
-
-* **2. Verifica el Ingress:**
-
-```bash
-kubectl get ingress -n nextcloud
-```
-
-```
-NAME                CLASS   HOSTS             ADDRESS         PORTS     AGE
-nextcloud-ingress   nginx   nextcloud.midominio.com   192.168.1.200   80, 443   3s
-```
+  * **Despliega el Ingress para Nextcloud:**
+  
+      ```bash
+      kubectl apply -f ingress-nextcloud.yaml -n nextcloud
+      ```
+  
+  * **Verifica el Ingress:**
+  
+      ```bash
+      kubectl get ingress -n nextcloud
+      NAME                CLASS   HOSTS             ADDRESS         PORTS     AGE
+      nextcloud-ingress   nginx   nextcloud.midominio.com   192.168.1.200   80, 443   3s
+      ```
 
 Apunta el `HOST` configurado en tu Ingress a la `ADDRESS` (IP de MetalLB) en tu servidor DNS o en tu Nginx Proxy Manager.
 
-Ingresamos al pod
-```
-kubectl exec -it -n nextcloud nextcloud-5dff54784f-pqmqn -- bash
-```
-```
-Defaulted container "nextcloud" out of: nextcloud, wait-for-mariadb-cluster (init),
-wait-for-redis-cluster (init)
-root@nextcloud-5dff54784f-pqmqn:/var/www/html#
-```
+### Ajustes Finales de Configuración
 
-Actualizamos el pod e instalamos el editor de texto
-```
-root@nextcloud-5dff54784f-pqmqn:/var/www/html# apt update
-root@nextcloud-5dff54784f-pqmqn:/var/www/html# apt install nano
-```
+Para un rendimiento óptimo y una configuración correcta detrás de un proxy inverso, debemos editar el archivo `config.php`.
 
-Editamos el archivo config.php y añadimos lo que no está comentado
-```
-root@nextcloud-5dff54784f-pqmqn:/var/www/html# nano config/config.php
-```
-```php
-//<?php
-//$CONFIG = array (
-//   'htaccess.RewriteBase' => '/',
-//   'memcache.local' => '\\OC\\Memcache\\APCu',
-//   'apps_paths' => 
-//   array (
-//     0 => 
-//     array (
-//       'path' => '/var/www/html/apps',
-//       'url' => '/apps',
-//       'writable' => false,
-//     ),
-//     1 => 
-//     array (
-//       'path' => '/var/www/html/custom_apps',
-//       'url' => '/custom_apps',
-//       'writable' => true,
-//     ),
-//   ),
-//   'memcache.distributed' => '\\OC\\Memcache\\Redis',
-//   'memcache.locking' => '\\OC\\Memcache\\Redis',
-     'filelocking.enabled' => true,
-//   'redis' => 
-//   array (
-//     'host' => 'redis-replication-master',
-//     'password' => 'redis',
-//     'port' => 6379,
-       'timeout' => 1.5,
-       'read_timeout' => 1.5,
-//   ),
-//   'upgrade.disable-web' => true,
-//   'passwordsalt' => 'mFYaed0z3v4WOambO7lQS1fFPAoh4w',
-//   'secret' => 'yG+NuLVJRs1fOKyMeaCIQuJFZL3YEKHHVTglv+3bsu2gD5RM',
-      'trusted_domains' => 
-      array (
-       0 => 'localhost',
-       1 => 'apu.uni.edu.pe',
-      ),
-//   'datadirectory' => '/var/www/html/data',
-//   'dbtype' => 'mysql',
-//   'version' => '31.0.7.1',
-      'overwrite.cli.url' => 'http://domain.test.com',
-      'overwritehost' => 'domain.test.com',
-      'overwriteprotocol' => 'https',
-      'trusted_proxies' => 
-      array (
-       0 => '10.0.0.0/8',
-       1 => '192.168.1.0/24',
-      ),
-//   'dbname' => 'nextcloud',
-//   'dbhost' => 'mariadb-galera',
-//   'dbport' => '',
-//   'dbtableprefix' => 'oc_',
-//   'mysql.utf8mb4' => true,
-//   'dbuser' => 'nextcloud',
-//   'dbpassword' => 'redis',
-      'asset-pipeline.enabled' => true,
-      'asset-pipeline.minify' => true,
-      'asset-pipeline.combine' => true,
-      'has_internet_connection' => true,
-      'check_for_working_htaccess' => true,
-      'default_phone_region' => 'PE',
-      'cookie_same_site' => 'Lax',
-//   'installed' => true,
-//   'instanceid' => 'oc3m9a2x0tcn',
-      'enable_previews' => true,
-      'enabledPreviewProviders' => 
-      array (
-        0 => 'OC\\Preview\\Image',
-        1 => 'OC\\Preview\\MarkDown',
-        2 => 'OC\\Preview\\MP3',
-        3 => 'OC\\Preview\\TXT',
-        4 => 'OC\\Preview\\OpenDocument',
-        5 => 'OC\\Preview\\Movie',
-        6 => 'OC\\Preview\\Krita',
-        7 => 'OC\\Preview\\PNG',
-        8 => 'OC\\Preview\\JPEG',
-        9 => 'OC\\Preview\\GIF',
-        10 => 'OC\\Preview\\HEIC',
-        11 => 'OC\\Preview\\BMP',
-        12 => 'OC\\Preview\\XBitmap',
-        13 => 'OC\\Preview\\MKV',
-        14 => 'OC\\Preview\\MP4',
-        15 => 'OC\\Preview\\AVI',
-        16 => 'OC\\Preview\\PDF',
-      ),
-      'preview_max_x' => '1024',
-      'preview_max_y' => '1024',
-      'jpeg_quality' => '60',
-      'preview_max_memory' => '2048',
-      'preview_max_filesize_image' => '50',
-//);
-```
+  * **Ingresa al Pod de Nextcloud:**
+  
+      ```bash
+      # Reemplaza con el nombre de tu pod
+      kubectl exec -it -n nextcloud <nombre-del-pod-de-nextcloud> -- bash
+      ```
+  
+  * **Instala un editor de texto (ej. nano) y edita el archivo de configuración:**
+  
+      ```bash
+      # Dentro del pod
+      apt update && apt install -y nano
+      nano config/config.php
+      ```
+  
+  * **Añade las siguientes líneas** dentro del array `$CONFIG = array (...)`. Asegúrate de reemplazar `nextcloud.midominio.com` con tu dominio real.
 
-Ejecutar job de correccion
-> [!NOTE]
-> - Corrige las tablas de mariadb
-> - Añade tablas faltantes (si es el caso)
-> - Establece el manteniento automatico
-```
-kubectl apply -f set-db.yaml
-```
+     ```php
+     //<?php
+     //$CONFIG = array (
+     //   'htaccess.RewriteBase' => '/',
+     //   'memcache.local' => '\\OC\\Memcache\\APCu',
+     //   'apps_paths' => 
+     //   array (
+     //     0 => 
+     //     array (
+     //       'path' => '/var/www/html/apps',
+     //       'url' => '/apps',
+     //       'writable' => false,
+     //     ),
+     //     1 => 
+     //     array (
+     //       'path' => '/var/www/html/custom_apps',
+     //       'url' => '/custom_apps',
+     //       'writable' => true,
+     //     ),
+     //   ),
+     //   'memcache.distributed' => '\\OC\\Memcache\\Redis',
+     //   'memcache.locking' => '\\OC\\Memcache\\Redis',
+          'filelocking.enabled' => true,
+     //   'redis' => 
+     //   array (
+     //     'host' => 'redis-replication-master',
+     //     'password' => 'redis',
+     //     'port' => 6379,
+            'timeout' => 1.5,
+            'read_timeout' => 1.5,
+     //   ),
+     //   'upgrade.disable-web' => true,
+     //   'passwordsalt' => 'mFYaed0z3v4WOambO7lQS1fFPAoh4w',
+     //   'secret' => 'yG+NuLVJRs1fOKyMeaCIQuJFZL3YEKHHVTglv+3bsu2gD5RM',
+           'trusted_domains' => 
+           array (
+            0 => 'localhost',
+            1 => 'apu.uni.edu.pe',
+           ),
+     //   'datadirectory' => '/var/www/html/data',
+     //   'dbtype' => 'mysql',
+     //   'version' => '31.0.7.1',
+           'overwrite.cli.url' => 'http://domain.test.com',
+           'overwritehost' => 'domain.test.com',
+           'overwriteprotocol' => 'https',
+           'trusted_proxies' => 
+           array (
+            0 => '10.0.0.0/8',
+            1 => '192.168.1.0/24',
+           ),
+     //   'dbname' => 'nextcloud',
+     //   'dbhost' => 'mariadb-galera',
+     //   'dbport' => '',
+     //   'dbtableprefix' => 'oc_',
+     //   'mysql.utf8mb4' => true,
+     //   'dbuser' => 'nextcloud',
+     //   'dbpassword' => 'redis',
+           'asset-pipeline.enabled' => true,
+           'asset-pipeline.minify' => true,
+           'asset-pipeline.combine' => true,
+           'has_internet_connection' => true,
+           'check_for_working_htaccess' => true,
+           'default_phone_region' => 'PE',
+           'cookie_same_site' => 'Lax',
+     //   'installed' => true,
+     //   'instanceid' => 'oc3m9a2x0tcn',
+           'enable_previews' => true,
+           'enabledPreviewProviders' => 
+           array (
+             0 => 'OC\\Preview\\Image',
+             1 => 'OC\\Preview\\MarkDown',
+             2 => 'OC\\Preview\\MP3',
+             3 => 'OC\\Preview\\TXT',
+             4 => 'OC\\Preview\\OpenDocument',
+             5 => 'OC\\Preview\\Movie',
+             6 => 'OC\\Preview\\Krita',
+             7 => 'OC\\Preview\\PNG',
+             8 => 'OC\\Preview\\JPEG',
+             9 => 'OC\\Preview\\GIF',
+             10 => 'OC\\Preview\\HEIC',
+             11 => 'OC\\Preview\\BMP',
+             12 => 'OC\\Preview\\XBitmap',
+             13 => 'OC\\Preview\\MKV',
+             14 => 'OC\\Preview\\MP4',
+             15 => 'OC\\Preview\\AVI',
+             16 => 'OC\\Preview\\PDF',
+           ),
+           'preview_max_x' => '1024',
+           'preview_max_y' => '1024',
+           'jpeg_quality' => '60',
+           'preview_max_memory' => '2048',
+           'preview_max_filesize_image' => '50',
+     //);
+     ```
+     Guarda el archivo (`Ctrl+O`) y sal (`Ctrl+X`).
 
-Verificar el job
-```
-kubectl get jobs -n nextcloud
-```
-```
-NAME                      STATUS     COMPLETIONS   DURATION   AGE
-nextcloud-db-repair-job   Complete   1/1           69s        2m23s
-```
+### Mantenimiento de la Base de Datos
 
-### Nginx Proxy Manager
-> [!TIP]
-> Si no tienes instalado NPM puedes usar el dockerfile **docker-compose.yml** de este repositorio
-​
-Ingresamos y creamos el certificado SSL
+Aplica un Job para realizar conversiones y reparaciones necesarias en la base de datos de Nextcloud.
 
-![guia](/imagenes/proxy-3.png)
+  * **Ejecuta el Job:**
+  
+      ```bash
+      kubectl apply -f set-db.yaml -n nextcloud
+      ```
+  
+  * **Verifica que se haya completado:**
+  
+      ```bash
+      kubectl get jobs -n nextcloud
+      NAME                      COMPLETIONS   DURATION   AGE
+      nextcloud-db-repair-job   1/1           69s        2m23s
+      ```
 
-Creamos proxy host
-> [!NOTE]
-> La dirección ip es la de ingress​
+-----
 
-![guia](/imagenes/proxy-0.png)
+## 4\. Configuración de Nginx Proxy Manager
 
-![guia](/imagenes/proxy-1.png)
+Si usas Nginx Proxy Manager, sigue estos pasos para configurar el acceso a Nextcloud.
 
-![guia](/imagenes/proxy-2.png)
-```
-proxy_set_header X-Real-IP $remote_addr;
-proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-proxy_set_header X-Forwarded-Host $host;
-proxy_set_header Host $host;
-proxy_set_header X-Forwarded-Proto $scheme;
-client_max_body_size 0;
-proxy_read_timeout 86400s;
-proxy_hide_header Upgrade;
-```
+  * **Crea o importa tu certificado SSL.**
 
-## Nextcloud dashboard
-Ingresamos a nextcloud desde nuestro navegador con el dominio configurado e ingresamos las credenciales del secrets
+      ![guia](/imagenes/proxy-3.png)
 
-![guia](/imagenes/nextcloud-0.png)
+  * **Crea un nuevo Proxy Host.**
 
-Ingresamos al panel de administración, seleccionamos el icono ubicado en la parte superior derecha > **Configuraciones de administración** > **Vista general** y verificamos que no haya errores
+      ![guia](/imagenes/proxy-0.png)
 
-![guia](/imagenes/nextcloud-1.png)
+> [\!NOTE]
+> La dirección IP que debes usar es la que te asignó MetalLB a tu Ingress Controller.
 
-Ingresamos al panel de administración, seleccionamos el icono ubicado en la parte superior derecha > **Configuraciones de administración** > **Ajustes básicos** y seleccionamos **cron**.
+  * **Configura la pestaña de SSL.**
 
-![guia](/imagenes/nextcloud-2.png)
+      ![guia](/imagenes/proxy-1.png)
+    
+  * **Agrega la configuración avanzada.**
+    
+      En la pestaña **Advanced**, pega el siguiente código:
 
-Ejecutar cronjob
-```
-kubectl apply -f cron-nextcloud.yaml
-```
+      ![guia](/imagenes/proxy-2.png)
+    
+      ```nginx
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Host $host;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      client_max_body_size 0;
+      proxy_read_timeout 86400s;
+      proxy_hide_header Upgrade;
+      ```
 
-Verificar los cronjobs
-```
-kubectl get cronjobs -n nextcloud
-```
-```
-NAME             SCHEDULE       TIMEZONE   SUSPEND   ACTIVE   LAST SCHEDULE   AGE
-nextcloud-cron   */5 * * * *    <none>     False     0        2m6s            6s
-```
+-----
 
-### Seguridad de dominio web
-Si tenemos publicado en internet nuestro servicio, comprobamos el nivel de seguridad en [scan.nextcloud.com](https://scan.nextcloud.com/)
+## 5\. Configuración del Panel de Nextcloud
+
+  * **Accede a Nextcloud** a través de tu navegador usando el dominio que configuraste. Inicia sesión con las credenciales definidas en tu archivo `secrets.yaml`.
+
+      ![guia](/imagenes/nextcloud-0.png)
+
+  
+  * **Ve a la configuración de administración** (icono de perfil \> **Ajustes de administración**) y revisa la sección **Vista general**. No debería mostrarse ninguna advertencia o error de configuración.
+
+      ![guia](/imagenes/nextcloud-1.png)
+  
+  * **Configura las tareas en segundo plano.** En **Ajustes básicos**, selecciona la opción **Cron** para manejar las tareas de fondo.
+
+      ![guia](/imagenes/nextcloud-2.png)
+  
+  * **Despliega el CronJob en Kubernetes** para que ejecute las tareas de mantenimiento de Nextcloud cada 5 minutos.
+      
+      ```bash
+      kubectl apply -f cron-nextcloud.yaml -n nextcloud
+      ```
+  
+  * **Verifica que el CronJob se haya creado:**
+  
+      ```bash
+      kubectl get cronjobs -n nextcloud
+      ```
+      
+      ```
+      NAME             SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+      nextcloud-cron   */5 * * * * False     0        <none>          6s
+      ```
+
+### Seguridad del Dominio Web
+
+Si tu servicio está expuesto a internet, puedes verificar su nivel de seguridad usando el escáner oficial de Nextcloud: [scan.nextcloud.com](https://scan.nextcloud.com/)
 
 ![guia](/imagenes/nextcloud-3.png)
 
-## Clamav
-Instalar clamav
-```
-kubectl apply -f clamav.yaml
-```
+## 6\. Integración de Aplicaciones Adicionales
 
-Verificar los Pods
-```
-kubectl get pods -n nextcloud
-```
-```
-NAME                            READY   STATUS      RESTARTS   AGE
-clamav-59cc7b479f-mcnmd         1/1     Running     0          7m
-```
+### Antivirus con ClamAV
 
-Para la instalacion de ClamAV seleccionamos el icono ubicado en la parte superior derecha > Aplicaciones > Seguridad e instalamos el aplicativo **Antifirus for files**
+  * **Despliega ClamAV:**
+  
+      ```bash
+      kubectl apply -f clamav.yaml -n nextcloud
+      ```
+  
+  * **Verifica que el Pod esté en ejecución:**
+  
+      ```bash
+      kubectl get pods -n nextcloud
+      NAME                      READY   STATUS    RESTARTS   AGE
+      clamav-59cc7b479f-mcnmd   1/1     Running   0          7m
+      ```
+  
+  * **Configura la integración en Nextcloud:**
+  
+    * Ve a **Aplicaciones** (icono de perfil \> Aplicaciones) \> **Seguridad** e instala **Antivirus for files**.
 
-![guia](/imagenes/clamav-0.png)
+      ![guia](/imagenes/clamav-0.png)
+  
+    * Regresa a **Ajustes de administración** \> **Seguridad**. En la sección "Antivirus para archivos", configura lo siguiente:
+  
+        * **Modo:** Demonio de ClamAV (Socket)
+        * **Host:** `clamav`
+        * **Puerto:** `3310`
+        * **Longitud de flujo:** `104857600`
 
-Regresamos a Configuraciones de administracion y nos dirigimos a **seguridad**, hasta la parte inferior donde estara el apartado de **Antivirus para archivos** en la cual configuramos de esta manera
+      ![guia](/imagenes/clamav-1.png)
+  
+    * Guarda la configuración y prueba subiendo un [archivo de prueba EICAR](https://www.eicar.org/download-anti-malware-testfile/) para confirmar que es bloqueado.
 
-- **modo:** Dominio de clamAV
-- **dominio:** clamav
-- **puerto:** 3310
-- **Longitud de flujo:** 104857600
+      ![guia](/imagenes/clamav-2.png)
 
-![guia](/imagenes/clamav-1.png)
 
-Ahora nos dirigimos a **Archivos** e intentamos subir un archivo eicar, para probar el correcto funcionamiento de clamAV
 
-> [!NOTE]
-> Puedes descargar los archivos eicar de prueba [aqui](https://www.eicar.org/download-anti-malware-testfile/)
+### Suite Ofimática con Collabora Online
 
-![guia](/imagenes/clamav-2.png)
+  * **Despliega Collabora:**
+  
+      ```bash
+      kubectl apply -f collabora.yaml -n nextcloud
+      ```
+  
+  * **Verifica que el Pod esté en ejecución:**
+  
+      ```bash
+      kubectl get pods -n nextcloud
+      NAME                        READY   STATUS    RESTARTS   AGE
+      collabora-5998759c75-w7txg   1/1     Running   0          7m
+      ```
+  
+  * **Despliega el Ingress para Collabora:**
+      Este paso expone Collabora en su propio subdominio.
+  
+      ```bash
+      kubectl apply -f ingress-collabora.yaml -n nextcloud
+      ```
+  
+    Asegúrate de configurar el DNS para este nuevo subdominio (ej. `office.midominio.com`) para que apunte a la misma IP de tu Ingress.
+  
+  * **Configura la integración en Nextcloud:**
+  
+    * Ve a **Aplicaciones** \> **Oficina y texto** e instala **Nextcloud Office**.
 
-## Collabora
-Instalar collabora
-```
-kubectl apply -f collabora.yaml
-```
+      ![guia](/imagenes/collabora-0.png)
+  
+    * Regresa a **Ajustes de administración** \> **Nextcloud Office**.
+  
+    * Selecciona **Usar tu propio servidor** e ingresa la URL de tu instancia de Collabora (ej. `https://collabora.local.test`).
 
-Verificar los Pods
-```
-kubectl get pods -n nextcloud
-```
-```
-NAME                            READY   STATUS      RESTARTS   AGE
-collabora-5998759c75-w7txg      1/1     Running     0          7m
-```
+      ![guia](/imagenes/collabora-1.png)      
+  
+    * Guarda los cambios. Ahora deberías poder crear y editar documentos de Office directamente en Nextcloud.
 
-Instalar ingress de collabora
-```
-kubectl apply -f ingress-collabora.yaml
-```
-
-Verificar los ingress
-```
-kubectl get ingress -n nextcloud
-```
-```
-NAME                CLASS   HOSTS                       ADDRESS        PORTS     AGE
-collabora-ingress   nginx   apu.pitvirtual.uni.edu.pe   192.168.1.201  80, 443   3m
-```
-
-Para la instalacion de Collabora seleccionamos el icono ubicado en la parte superior derecha > Aplicaciones > Oficina y texto e instalamos el aplicativo **Nextcloud Office**
-
-![guia](/imagenes/collabora-0.png)
-
-Regresamos a Configuraciones de administracion y nos dirigimos a **Nextcloud Office**, seleccionamos **Use su propio servidor** e ingresamos la url del dominio de Collabora
-
-![guia](/imagenes/collabora-1.png)
-
-Ahora nos dirigimos a **Archivos** e ingresamos a Documentes y abrimos el documento **Welcome to Nextcloud Hub.docx**
-
-![guia](/imagenes/collabora-2.png)
-
-![guia](/imagenes/collabora-3.png)
+      ![guia](/imagenes/collabora-2.png)
+      
+      ![guia](/imagenes/collabora-3.png)
 
 ## Outh2
 Para la instalación seleccionamos el icono ubicado en la parte superior derecha > **Aplicaciones** > **Multimedia** e instalamos **Preview Generator**
