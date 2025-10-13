@@ -73,7 +73,7 @@ spec:
             - name: aliasgroup1
               value: "https://nextcloud\\.test\\.local:443" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
             - name: server_name
-              value: "collabora.test.local" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
+              value: "collabora.local.test" # <--- ¡CAMBIA ESTO A TU NECESIDAD!
             - name: extra_params
               value: "--o:ssl.enable=false --o:ssl.termination=true"
             - name: username
