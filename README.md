@@ -706,74 +706,116 @@ Si tu servicio está expuesto a internet, puedes verificar su nivel de seguridad
       
       ![guia](/imagenes/collabora-3.png)
 
-## Outh2
-Para la instalación seleccionamos el icono ubicado en la parte superior derecha > **Aplicaciones** > **Multimedia** e instalamos **Preview Generator**
+-----
 
----
+## 6\. Configurar Inicio de Sesión con Google (OAuth 2.0)
 
-Ingresamos a [la Consola de Desarrolladores de Google](https://console.developers.google.com/) crea un nuevo proyecto
+### Configuración en la Google Cloud Console
 
----
+* #### Crear un nuevo proyecto
 
-En el menú lateral, ve a **APIs y servicios** > **Credenciales**
+  Primero, dirígete a la [Consola de Desarrolladores de Google](https://console.cloud.google.com/projectcreate).
 
----
+  * **Nombre del proyecto:** Asígnale un nombre descriptivo, como "Nextcloud Login".
+  * **Organización (si aplica):** Selecciona tu organización o déjalo como "Sin organización".
+  * Haz clic en **Crear**.
 
-Haz clic en **Configurar pantalla de consentimiento de OAuth**
+* #### Habilitar la API necesaria
 
----
+  Para que la autenticación funcione, debemos habilitar la **Google People API**.
 
-Ingresa un **Nombre de la aplicación** relevante (por ejemplo, *Nextcloud Login*).
+  * En el menú de navegación (`☰`), ve a **APIs y servicios** \> **Biblioteca**.
+  * En la barra de búsqueda, escribe `Google People API` y selecciónala.
+  * Haz clic en el botón **Habilitar**.
 
----
+* #### Configurar la Pantalla de Consentimiento de OAuth
 
-Selecciona el tipo de usuario (Externo o Interno).
+  Esta es la pantalla que verán tus usuarios cuando intenten iniciar sesión por primera vez.
 
----
+  * En el menú de navegación, ve a **APIs y servicios** \> **Pantalla de consentimiento de OAuth**.
 
-Ingresa una cuenta de información.
+  * **Tipo de usuario:**
 
----
+      * **Interno:** Solo para usuarios dentro de tu organización de Google Workspace.
+      * **Externo:** Para cualquier usuario con una cuenta de Google. (Esta es la opción más común).
 
-Crea el proyecto
+  * Haz clic en **Crear**.
 
----
+  * **Información de la app**
 
-De vuelta en **Credenciales**, haz clic en **Crear credenciales** > **ID de cliente de OAuth**.
+      * **Nombre de la aplicación:** Un nombre relevante para tus usuarios (ej. *Acceso a Nextcloud*).
+      * **Correo electrónico de asistencia del usuario:** Tu correo electrónico.
+      * **Información de contacto del desarrollador:** Ingresa uno o más correos electrónicos.
+      * Haz clic en **Guardar y continuar**.
 
----
+  * **Permisos (Scopes)**
 
-Selecciona **Aplicación web** como **Tipo de aplicación** e ingresa un nombre para el cliente (ej.
-*Nextcloud Google OAuth*).
+      * No es necesario añadir permisos aquí para el inicio de sesión básico. Haz clic en **Guardar y continuar**.
 
----
+  * **Usuarios de prueba**
 
-En **Orígenes de JavaScript autorizados**, agrega la URL base de tu Nextcloud (ej. *https://tudominio.com*).
-En **URIs de redireccionamiento autorizados**, agrega la siguiente URL, reemplazando *tudominio.com* con la URL de tu Nextcloud: **https://tudominio.com/apps/sociallogin/oauth/google**
-Haz clic en **Crear**.
+      * Puedes añadir correos de usuarios para probar la configuración antes de publicarla. Es opcional.
+      * Haz clic en **Guardar y continuar**.
 
----
+  * **Publicar la aplicación**
 
-> [!IMPORTANT]
-> Se te proporcionará un ID de cliente y un Secreto de cliente. Anótalos, los necesitarás en el siguiente paso.
+      * Vuelve al panel de la **Pantalla de consentimiento de OAuth** y haz clic en **Publicar la aplicación** para que esté disponible para todos tus usuarios.
 
-> [!NOTE]
-> en caso de no anotarlo lo puedes hayar **APIS y servicios** > **Credenciales**
+* #### Crear las Credenciales (ID de cliente de OAuth)
 
-En Nextcloud ingresamos al panel de administración, seleccionamos el icono ubicado en la parte superior derecha > **Configuraciones de administración** > **Social login**.
+  Ahora generaremos las claves que conectarás con Nextcloud.
 
----
+  * En el menú de navegación, ve a **APIs y servicios** \> **Credenciales**.
 
-Desplázate hacia abajo hasta la sección de "Google".
-Ingresa el ID de aplicación (App id) y el Secreto (Secret) que obtuviste de la Consola de Desarrolladores de Google.
-Selecciona "Grupo predeterminado" (Default group) y selecciona Ninguno.
-Haz clic en "Guardar"
+  * Haz clic en **+ CREAR CREDENCIALES** y selecciona **ID de cliente de OAuth**.
 
----
+  * **Tipo de aplicación:** Selecciona **Aplicación web**.
 
-Para probar el inicio de sesión abre una nueva ventana de navegador (o una ventana de incógnito/privada).
-Ve a la URL de inicio de sesión de tu Nextcloud.
-Deberías ver un botón para iniciar sesión con Google debajo del formulario de inicio de sesión normal
-de Nextcloud.
+  * **Nombre:** Asígnale un nombre para identificarla (ej. *Cliente Web de Nextcloud*).
 
----
+  * **Orígenes de JavaScript autorizados:**
+
+      * Haz clic en **+ AÑADIR URI**.
+      * Ingresa la URL base de tu Nextcloud (ej. `https://nextcloud.test.local`).
+
+  * **URIs de redireccionamiento autorizados:**
+
+      * Haz clic en **+ AÑADIR URI**.
+      * Ingresa la siguiente URL, reemplazando `nextcloud.test.local` con tu dominio real:
+        ```
+        https://nextcloud.test.local/apps/sociallogin/oauth/google
+        ```
+
+  * Haz clic en **Crear**.
+
+> [\!IMPORTANT]
+> Se te mostrará un **ID de cliente** y un **Secreto del cliente**. Cópialos y guárdalos en un lugar seguro. Los necesitarás en el siguiente paso.
+
+> [\!NOTE]
+> Si no los anotaste, puedes encontrarlos nuevamente en la sección **APIs y servicios** \> **Credenciales**, haciendo clic en el nombre del cliente que acabas de crear.
+
+-----
+
+### Configuración en Nextcloud
+
+* #### Ingresar Credenciales en Social Login
+
+  * En tu Nextcloud, ve a tu panel de administrador.
+  * Navega a **Configuración** (en el menú bajo tu icono de perfil) \> **Social login** (en el panel lateral izquierdo).
+  * Busca la sección de **Google**.
+  * Rellena los siguientes campos:
+        * **App id:** Pega el **ID de cliente** que obtuviste de Google.
+        * **Secret:** Pega el **Secreto del cliente**.
+  * **"Default group":** Si deseas que los nuevos usuarios que se registren con Google sean añadidos automáticamente a un grupo en Nextcloud, selecciónalo aquí. Si prefieres gestionar los usuarios manualmente o no permitir el registro automático, déjalo en **Ninguno**.
+  * Haz clic en **Guardar**.
+
+-----
+
+### Verificación
+
+Para probar que la integración funciona correctamente:
+
+  * Abre una nueva ventana de navegador en modo incógnito o privado.
+  * Ve a la página de inicio de sesión de tu Nextcloud.
+  * Debajo del formulario tradicional de usuario y contraseña, ahora deberías ver un botón para **Iniciar sesión con Google**.
+  * Haz clic en él y sigue el proceso de autenticación de Google. Si todo está correcto, deberías acceder a tu cuenta de Nextcloud.
