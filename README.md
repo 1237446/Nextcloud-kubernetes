@@ -548,7 +548,7 @@ Si usas Nginx Proxy Manager, sigue estos pasos para configurar el acceso a Nextc
 
 -----
 
-## 5\. Configuración del Panel de Nextcloud
+## 5\. Configuración de Nextcloud
 
   * **Accede a Nextcloud** a través de tu navegador usando el dominio que configuraste. Inicia sesión con las credenciales definidas en tu archivo `secrets.yaml`.
 
@@ -566,6 +566,33 @@ Si usas Nginx Proxy Manager, sigue estos pasos para configurar el acceso a Nextc
   * **Despliega el CronJob en Kubernetes** para que ejecute las tareas de mantenimiento de Nextcloud cada 5 minutos.
       
       ```bash
+      kubectl apply -f cron-preview.yaml -n nextcloud
+      ```
+  
+  * **Verifica que el CronJob se haya creado:**
+  
+      ```bash
+      kubectl get cronjobs -n nextcloud
+      ```
+      
+      ```
+      NAME             SCHEDULE       SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+      preview-cron     */10 * * * *   False     0        <none>          6s
+      ```
+
+### Seguridad del Dominio Web
+
+Si tu servicio está expuesto a internet, puedes verificar su nivel de seguridad usando el escáner oficial de Nextcloud: [scan.nextcloud.com](https://scan.nextcloud.com/)
+
+![guia](/imagenes/nextcloud-3.png)
+
+## 6\. Integración de Aplicaciones Adicionales
+
+### Preview Generator
+
+  * **Despliega el CronJob en Kubernetes** para que ejecute las tareas de mantenimiento de Nextcloud cada 5 minutos.
+      
+      ```bash
       kubectl apply -f cron-nextcloud.yaml -n nextcloud
       ```
   
@@ -580,13 +607,26 @@ Si usas Nginx Proxy Manager, sigue estos pasos para configurar el acceso a Nextc
       nextcloud-cron   */5 * * * * False     0        <none>          6s
       ```
 
-### Seguridad del Dominio Web
+  * **Ingresa al Pod de Nextcloud:**
+  
+      ```bash
+      # Reemplaza con el nombre de tu pod
+      kubectl exec -it -n nextcloud <nombre-del-pod-de-nextcloud> -- bash
+      ```
 
-Si tu servicio está expuesto a internet, puedes verificar su nivel de seguridad usando el escáner oficial de Nextcloud: [scan.nextcloud.com](https://scan.nextcloud.com/)
-
-![guia](/imagenes/nextcloud-3.png)
-
-## 6\. Integración de Aplicaciones Adicionales
+  * **Instala el programa sudo**
+  
+      ```bash
+      # Dentro del pod
+      apt update && apt install -y sudo
+      ```
+  
+  * **Ejecutar el siguiente comando:**
+  
+      ```bash
+      # Generacion de de imagenes de previsualizacion
+      sudo -u www-data ./occ preview:generate-all -vvv
+      ```
 
 ### Antivirus con ClamAV
 
@@ -622,8 +662,6 @@ Si tu servicio está expuesto a internet, puedes verificar su nivel de seguridad
     * Guarda la configuración y prueba subiendo un [archivo de prueba EICAR](https://www.eicar.org/download-anti-malware-testfile/) para confirmar que es bloqueado.
 
       ![guia](/imagenes/clamav-2.png)
-
-
 
 ### Suite Ofimática con Collabora Online
 
