@@ -31,6 +31,8 @@ Antes de comenzar, es crucial revisar y modificar los valores en los archivos de
 > [\!NOTE]
 > Se recomienda instalar Nginx Proxy Manager (NPM) en una instancia separada, fuera del clúster de Kubernetes. Puedes seguir la [guía oficial](https://nginxproxymanager.com/guide/) y usar mi archivo `docker-compose.yml` como referencia.
 
+> [!WARNING]
+> Para funcionar correctamente, Rook-Ceph requiere que los nodos de almacenamiento dispongan de discos o particiones en bruto (sin formato). Si necesitas preparar un nodo con esta configuración, puedes seguir mi [guía de instalación](https://github.com/1237446/Nextcloud-kubernetes/blob/main/imagenes/Instalaci%C3%B3n%20de%20Ubuntu%20server%20para%20Rook-Ceph%20(1).pdf).
 ### 🔗 Ingress Controller (nginx)
 
 El Ingress Controller es necesario para exponer los servicios de Nextcloud y Collabora a la red externa.
