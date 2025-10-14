@@ -233,7 +233,8 @@ Utilizaremos el operador de MariaDB para gestionar nuestro clúster de base de d
   * **Instala el operador y sus CRDs:**
   
       ```bash
-      helm install mariadb-operator mariadb-operator/mariadb-operator --create-namespace --namespace mariadb-operator
+      helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
+      helm install mariadb-operator mariadb-operator/mariadb-operator
       ```
   
   * **Despliega el clúster de MariaDB Galera:**
@@ -246,9 +247,7 @@ Utilizaremos el operador de MariaDB para gestionar nuestro clúster de base de d
   
       ```bash
       kubectl get pods -n nextcloud
-      ```
       
-      ```
       NAME               READY   STATUS    RESTARTS   AGE
       mariadb-galera-0   2/2     Running   0          4m
       mariadb-galera-1   2/2     Running   0          4m
@@ -267,22 +266,16 @@ Utilizaremos el operador de MariaDB para gestionar nuestro clúster de base de d
   * **Verifica que los recursos se hayan creado correctamente:**
   
       ```bash
-      # Verificar la base de datos
-      kubectl get database -n nextcloud
-      NAME        READY   STATUS    CHARSET   COLLATE           MARIADB          AGE     NAME
-      nextcloud   True    Created   utf8      utf8_general_ci   mariadb-galera   7s 
+      kubectl get database,user,grant -n nextcloud
       
-      # Verificar el usuario
-      kubectl get user -n nextcloud
-      NAME                         READY   STATUS    MAXCONNS   MARIADB          AGE
-      mariadb-galera-mariadb-sys   True    Created   20         mariadb-galera   5m
-      nextcloud                    True    Created   50         mariadb-galera   10s
+      NAME                                 READY   STATUS              CHARSET   COLLATE           MARIADB          AGE   NAME
+      database.k8s.mariadb.com/nextcloud   False   MariaDB not found   utf8      utf8_general_ci   mariadb-galera   19s   
       
-      # Verificar los permisos
-      kubectl get grant -n nextcloud
-      NAME                                     READY   STATUS    DATABASE    TABLE         USERNAME        GRANTOPT   MARIADB          AGE
-      grant                                    True    Created   nextcloud   *             nextcloud     true       mariadb-galera   14s
-      mariadb-galera-mariadb-sys-global-priv   True    Created   mysql       global_priv   mariadb.sys   false      mariadb-galera   5m
+      NAME                             READY   STATUS              MAXCONNS   MARIADB          AGE
+      user.k8s.mariadb.com/nextcloud   False   MariaDB not found   20000      mariadb-galera   19s
+      
+      NAME                          READY   STATUS              DATABASE    TABLE   USERNAME    GRANTOPT   MARIADB          AGE
+      grant.k8s.mariadb.com/grant   False   MariaDB not found   nextcloud   *       nextcloud   true       mariadb-galera   19s
       ```
 
 -----
@@ -313,9 +306,7 @@ Redis se utilizará para el almacenamiento en caché y el bloqueo de archivos, m
   
       ```bash
       kubectl get pods -n nextcloud
-      ```
-      
-      ```
+
       NAME                        READY   STATUS    RESTARTS   AGE
       redis-replication-0         1/1     Running   0          3m
       redis-replication-1         1/1     Running   0          3m
