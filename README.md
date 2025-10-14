@@ -183,14 +183,14 @@ Rook-Ceph es una solución de almacenamiento distribuido nativa de la nube, idea
   * **Despliega el operador de Rook-Ceph:**
   
       ```bash
-      helm install --create-namespace --namespace rook-ceph rook-ceph rook-release/rook-ceph
+      helm install --create-namespace --namespace rook-ceph rook-ceph rook-release/rook-ceph -f values.yaml
       ```
   
   * **Despliega el clúster de Ceph:**
   
       ```bash
       helm install --create-namespace --namespace rook-ceph rook-ceph-cluster \
-         --set operatorNamespace=rook-ceph rook-release/rook-ceph-cluster
+         --set operatorNamespace=rook-ceph rook-release/rook-ceph-cluster -f values.yaml
       ```
   
   * **Verifica los Pods:**
