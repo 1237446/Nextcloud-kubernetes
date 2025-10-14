@@ -227,7 +227,7 @@ Utilizaremos el operador de MariaDB para gestionar nuestro clúster de base de d
   * **Agrega el repositorio de Helm:**
   
       ```bash
-      helm repo add mariadb-operator https://helm.mariadb.com/
+      helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator/
       ```
   
   * **Instala el operador y sus CRDs:**
