@@ -426,6 +426,13 @@ Para un rendimiento óptimo y una configuración correcta detrás de un proxy in
             0 => 'localhost',
             1 => 'apu.uni.edu.pe',
            ),
+           'forwarded_for_headers' => 
+           array (
+             0 => 'HTTP_X_FORWARDED_FOR',
+             1 => 'HTTP_X_FORWARDED',
+             2 => 'HTTP_X_FORWARDED_PROTO',
+           ),
+          'remote_address_header' => 'HTTP_X_REAL_IP',
      //   'datadirectory' => '/var/www/html/data',
      //   'dbtype' => 'mysql',
      //   'version' => '31.0.7.1',
