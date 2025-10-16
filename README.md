@@ -720,6 +720,8 @@ Si tu servicio está expuesto a internet, puedes verificar su nivel de seguridad
   * **Organización (si aplica):** Selecciona tu organización o déjalo como "Sin organización".
   * Haz clic en **Crear**.
 
+  ![guia](/imagenes/login-0.png)
+
 * #### Habilitar la API necesaria
 
   Para que la autenticación funcione, debemos habilitar la **Google People API**.
