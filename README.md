@@ -727,19 +727,22 @@ Si tu servicio está expuesto a internet, puedes verificar su nivel de seguridad
   Para que la autenticación funcione, debemos habilitar la **Google People API**.
 
   * En el menú de navegación (`☰`), ve a **APIs y servicios** \> **Biblioteca**.
+    
+    ![guia](/imagenes/login-1.png)
+    
   * En la barra de búsqueda, escribe `Google People API` y selecciónala.
+    
+    ![guia](/imagenes/login-2.png)
+    
   * Haz clic en el botón **Habilitar**.
+
+    ![guia](/imagenes/login-3.png)
 
 * #### Configurar la Pantalla de Consentimiento de OAuth
 
   Esta es la pantalla que verán tus usuarios cuando intenten iniciar sesión por primera vez.
 
   * En el menú de navegación, ve a **APIs y servicios** \> **Pantalla de consentimiento de OAuth**.
-
-  * **Tipo de usuario:**
-
-      * **Interno:** Solo para usuarios dentro de tu organización de Google Workspace.
-      * **Externo:** Para cualquier usuario con una cuenta de Google. (Esta es la opción más común).
 
   * Haz clic en **Crear**.
 
@@ -748,26 +751,32 @@ Si tu servicio está expuesto a internet, puedes verificar su nivel de seguridad
       * **Nombre de la aplicación:** Un nombre relevante para tus usuarios (ej. *Acceso a Nextcloud*).
       * **Correo electrónico de asistencia del usuario:** Tu correo electrónico.
       * **Información de contacto del desarrollador:** Ingresa uno o más correos electrónicos.
-      * Haz clic en **Guardar y continuar**.
+      * Haz clic en **Siguiente**.
+    
+        ![guia](/imagenes/login-4.png)
 
-  * **Permisos (Scopes)**
+  * **Tipo de usuario:**
 
-      * No es necesario añadir permisos aquí para el inicio de sesión básico. Haz clic en **Guardar y continuar**.
+      * **Interno:** Solo para usuarios dentro de tu organización de Google Workspace.
+      * **Externo:** Para cualquier usuario con una cuenta de Google. (Esta es la opción más común).
+      * Haz clic en **Siguiente**.
+   
+        ![guia](/imagenes/login-5.png)
 
-  * **Usuarios de prueba**
+  * **Usuario de contacto**
 
-      * Puedes añadir correos de usuarios para probar la configuración antes de publicarla. Es opcional.
-      * Haz clic en **Guardar y continuar**.
+      * Puedes añadir correos para enviar notificaciones sobre cualquier cambio en el proyecto. Es opcional.
+      * Haz clic en **Siguiente**.
 
-  * **Publicar la aplicación**
-
-      * Vuelve al panel de la **Pantalla de consentimiento de OAuth** y haz clic en **Publicar la aplicación** para que esté disponible para todos tus usuarios.
+        ![guia](/imagenes/login-6.png)
 
 * #### Crear las Credenciales (ID de cliente de OAuth)
 
   Ahora generaremos las claves que conectarás con Nextcloud.
 
   * En el menú de navegación, ve a **APIs y servicios** \> **Credenciales**.
+
+    ![guia](/imagenes/login-7.png)
 
   * Haz clic en **+ CREAR CREDENCIALES** y selecciona **ID de cliente de OAuth**.
 
@@ -788,6 +797,8 @@ Si tu servicio está expuesto a internet, puedes verificar su nivel de seguridad
         https://nextcloud.test.local/apps/sociallogin/oauth/google
         ```
 
+    ![guia](/imagenes/login-8.png)
+
   * Haz clic en **Crear**.
 
 > [\!IMPORTANT]
@@ -796,9 +807,17 @@ Si tu servicio está expuesto a internet, puedes verificar su nivel de seguridad
 > [\!NOTE]
 > Si no los anotaste, puedes encontrarlos nuevamente en la sección **APIs y servicios** \> **Credenciales**, haciendo clic en el nombre del cliente que acabas de crear.
 
+  ![guia](/imagenes/login-9.png)
+
 -----
 
 ### Configuración en Nextcloud
+
+* #### Social Login
+
+    * Ve a **Aplicaciones** (icono de perfil \> Aplicaciones) \> **Social y comunicacion** e instala **Social login**.
+
+      ![guia](/imagenes/login-10.png)
 
 * #### Ingresar Credenciales en Social Login
 
@@ -810,6 +829,8 @@ Si tu servicio está expuesto a internet, puedes verificar su nivel de seguridad
         * **Secret:** Pega el **Secreto del cliente**.
   * **"Default group":** Si deseas que los nuevos usuarios que se registren con Google sean añadidos automáticamente a un grupo en Nextcloud, selecciónalo aquí. Si prefieres gestionar los usuarios manualmente o no permitir el registro automático, déjalo en **Ninguno**.
   * Haz clic en **Guardar**.
+
+    ![guia](/imagenes/login-11.png)
 
 -----
 
