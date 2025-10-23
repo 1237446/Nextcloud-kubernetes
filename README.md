@@ -218,8 +218,6 @@ Si después de la instalación notas que los pods `rook-ceph-osd-*` no se están
     **Importante:** No modifiques la sección `status:`, ya que es solo de lectura. Solo debes editar la sección `spec:`.
 
     ```yaml
-    ...
-    spec:
       ...
       storage:
         useAllNodes: false
