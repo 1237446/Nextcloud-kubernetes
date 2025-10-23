@@ -202,6 +202,110 @@ Rook-Ceph es una solución de almacenamiento distribuido nativa de la nube, idea
   
       *El resultado será una lista larga de pods correspondientes al clúster de Ceph.*
 
+### Solución de Problemas: Pods OSD no se crean
+
+Si después de la instalación notas que los pods `rook-ceph-osd-*` no se están creando, es probable que necesites especificar manualmente qué nodos y dispositivos debe usar Ceph.
+
+  * **Edita el `CephCluster`:**
+
+    ```bash
+    kubectl -n rook-ceph edit cephcluster rook-ceph
+    ```
+
+  * **Añade la configuración de nodos y dispositivos:**
+    Localiza la sección `storage:`. Asegúrate de establecer `useAllNodes` y `useAllDevices` en `false`, y luego define explícitamente tu lista de `nodes` y `devices` (particiones) a utilizar.
+
+    **Importante:** No modifiques la sección `status:`, ya que es solo de lectura. Solo debes editar la sección `spec:`.
+
+    ```yaml
+    ...
+    spec:
+      ...
+      storage:
+        useAllNodes: false
+        useAllDevices: false
+        nodes:
+        - name: master-1      # Nombre del nodo
+          devices:
+          - name: nvme0n1p4   # Nombre de la partición/dispositivo
+        - name: master-2
+          devices:
+          - name: nvme0n1p4
+        - name: node-1
+          devices:
+          - name: nvme0n1p4
+        - name: node-2
+          devices:
+          - name: nvme0n1p4
+        - name: node-3
+          devices:
+          - name: nvme0n1p4
+        - name: node-4
+          devices:
+          - name: nvme0n1p4
+    ...
+    ```
+
+  * **Reinicia el operador de Rook:**
+    Para que los cambios surtan efecto y se inicien los pods de preparación (`osd-prepare`), reinicia el pod del operador de Rook-Ceph. Usa un selector de etiquetas (`-l`) para eliminar el pod correcto, ya que el nombre es dinámico.
+
+    ```bash
+    kubectl delete pods -n rook-ceph -l app=rook-ceph-operator
+    ```
+
+    *Kubernetes recreará automáticamente el pod del operador.*
+
+  * **Verifica la creación de los OSDs:**
+    Vuelve a verificar los pods. Deberías ver nuevos pods `rook-ceph-osd-prepare-*` (uno por cada nodo configurado) en estado `Completed` y, poco después, los pods `rook-ceph-osd-*` (uno por cada dispositivo) entrando en estado `Running`.
+
+    Puedes usar `watch` (watch) para ver los cambios en tiempo real:
+
+    ```bash
+    watch kubectl get pods -n rook-ceph
+    ```
+
+    **Salida esperada:**
+
+    ```text
+    # Primero, los pods de preparación se completarán:
+    rook-ceph-osd-prepare-master-1-l5jrs      0/1     Completed   0          2m
+    rook-ceph-osd-prepare-master-2-tbklv      0/1     Completed   0          2m
+    rook-ceph-osd-prepare-node-1-n84x4        0/1     Completed   0          2m
+    ...
+
+    # Luego, los OSDs definitivos se pondrán en marcha:
+    rook-ceph-operator-6ffd9c55b-abcde         1/1     Running     0          5m
+    rook-ceph-osd-0-6556ff99d6-gq2rn           2/2     Running     0          5m
+    rook-ceph-osd-1-86bc54765b-cbgh6           2/2     Running     0          5m
+    rook-ceph-osd-2-59765c5467-hqwpd           2/2     Running     0          5m
+    ...
+    ```
+
+  * **Eliminamos el pod**
+  Eliminamos el pod operador para reiniciar los pods de preparacion de osd
+
+     ```bash
+     kubectl delete pods -n rook-ceph rook-ceph-operator-6ffd9c55b-thrsp
+     ```
+
+  * **Verifica los Pods:**
+  La verificación de los pods en `rook-ceph` puede tomar varios minutos. Asegúrate de que todos los `osd`, estén en estado `Running` o `Completed`.
+
+     ```bash
+     rook-ceph-operator-6ffd9c55b-thrsp                          1/1     Running     0          24h
+     rook-ceph-osd-0-6556ff99d6-gq2rn                            2/2     Running     0          24h
+     rook-ceph-osd-1-86bc54765b-cbgh6                            2/2     Running     0          24h
+     rook-ceph-osd-2-59765c5467-hqwpd                            2/2     Running     0          24h
+     rook-ceph-osd-3-86c7798778-f5rj6                            2/2     Running     0          24h
+     rook-ceph-osd-4-7d5c65dd58-m449g                            2/2     Running     0          24h
+     rook-ceph-osd-prepare-master-1-l5jrs                        0/1     Completed   0          24h
+     rook-ceph-osd-prepare-master-2-tbklv                        0/1     Completed   0          24h
+     rook-ceph-osd-prepare-node-1-n84x4                          0/1     Completed   0          24h
+     rook-ceph-osd-prepare-node-2-7nbh8                          0/1     Completed   0          24h
+     rook-ceph-osd-prepare-node-3-7m7c2                          0/1     Completed   0          24h
+     rook-ceph-osd-prepare-node-4-t98pb                          0/1     Completed   0          24h
+     ```
+     
 -----
 
 ## 2\. Despliegue de los Componentes de Nextcloud
