@@ -26,7 +26,7 @@ Antes de comenzar, es crucial revisar y modificar los valores en los archivos de
 ## 1\. Requisitos Previos
 
 > [\!TIP]
-> Si no tienes un clúster de Kubernetes, puedes seguir mi [guía de instalación](https://github.com/1237446/Instalacion-de-Kubernetes).
+> Si no tienes un clúster de Kubernetes, puedes seguir mi [guía de instalación](https://github.com/1237446/Instalacion-de-RK2-con-Cilium).
 
 > [\!NOTE]
 > Se recomienda instalar Nginx Proxy Manager (NPM) en una instancia separada, fuera del clúster de Kubernetes. Puedes seguir la [guía oficial](https://nginxproxymanager.com/guide/) y usar mi archivo `docker-compose.yml` como referencia.
