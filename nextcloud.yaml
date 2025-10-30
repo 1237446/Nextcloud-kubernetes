@@ -55,6 +55,7 @@ data:
     max_input_time = 3600
     output_buffering = Off
     date.timezone = America/Lima
+    expose_php = Off
 
   opcache-recommended.ini: |
     opcache.enable=1
